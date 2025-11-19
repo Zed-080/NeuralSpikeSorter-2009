@@ -53,7 +53,7 @@ def load_D1(path):
 
 def load_unlabelled(path):
     """
-    Loads D2–D6 datasets which have only raw signal.
+    Loads D2-D6 datasets which have only raw signal.
     Returns normalized signal only.
     """
     d, _, _ = load_mat(path)
