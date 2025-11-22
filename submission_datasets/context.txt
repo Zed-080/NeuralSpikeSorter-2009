@@ -1,0 +1,1 @@
+This folder is where the moodle ready zip will be stored 
