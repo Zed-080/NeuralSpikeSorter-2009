@@ -22,17 +22,24 @@ SUBMISSION_ZIP_NAME = 'NeuralSpikeSorter_Submission.zip'
 DETECTOR_MODEL_PATH = os.path.join(OUTPUT_DIR, 'spike_detector_model.keras')
 CLASSIFIER_MODEL_PATH = os.path.join(
     OUTPUT_DIR, 'spike_classifier_model.keras')
-THRESHOLD_PATH = os.path.join(OUTPUT_DIR, 'detector_threshold.txt')
-REFRACTORY_PATH = os.path.join(OUTPUT_DIR, 'refractory_period.txt')
+
+# Path to the single tuning parameters file (as saved by main_train.py)
+TUNING_PARAMS_PATH = os.path.join(OUTPUT_DIR, 'detector_params.txt')
 
 
 def load_tuning_params():
-    """Loads the best tuned threshold and refractory period."""
+    """Loads the best tuned threshold and refractory period from the single saved file."""
     try:
-        with open(THRESHOLD_PATH, 'r') as f:
-            threshold = float(f.read().strip())
-        with open(REFRACTORY_PATH, 'r') as f:
-            refractory_period = int(f.read().strip())
+        # FIX: Open the single combined file
+        with open(TUNING_PARAMS_PATH, 'r') as f:
+            content = f.read().strip()
+
+        # FIX: Split the content by comma to get both values
+        threshold_str, refractory_str = content.split(',')
+
+        threshold = float(threshold_str.strip())
+        refractory_period = int(refractory_str.strip())
+
         print(
             f"Loaded detector parameters: Threshold={threshold:.4f}, Refractory={refractory_period}")
         return threshold, refractory_period
