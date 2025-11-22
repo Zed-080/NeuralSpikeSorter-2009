@@ -12,10 +12,10 @@ from spike_pipeline.inference.run_pipeline_D2_D6 import run_inference_dataset
 
 # --- Configuration ---
 # Directory where models are saved and where outputs (predictions) will be placed.
-OUTPUT_DIR = 'NeuralSpikeSorter-2009/outputs'
+OUTPUT_DIR = 'outputs'
 # Assuming prediction .mat files are generated in a subdirectory of OUTPUT_DIR
 PREDICTIONS_DIR = os.path.join(OUTPUT_DIR, 'predictions')
-SUBMISSION_DIR = 'NeuralSpikeSorter-2009/submission_datasets'
+SUBMISSION_DIR = 'submission_datasets'
 SUBMISSION_ZIP_NAME = 'NeuralSpikeSorter_Submission.zip'
 
 # Paths to trained models and tuning parameters
@@ -78,7 +78,7 @@ def prepare_submission_zip():
         f"\nCopied {len(copied_files)} out of 5 expected files into {SUBMISSION_DIR}")
 
     # 4. Create the final ZIP file
-    zip_filepath = os.path.join('NeuralSpikeSorter-2009', SUBMISSION_ZIP_NAME)
+    zip_filepath = SUBMISSION_ZIP_NAME
 
     with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zf:
         # Walk through the submission directory and add files to the zip

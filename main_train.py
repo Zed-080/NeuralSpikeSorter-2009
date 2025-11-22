@@ -10,7 +10,7 @@ from spike_pipeline.training import (
 )
 
 
-def main():
+def main(pretest=True):
     print("=== Building Detector Dataset ===")
     build_detector_dataset("D1.mat", save_prefix="outputs/")
 
@@ -25,10 +25,12 @@ def main():
     )
 
     print("\n=== Tuning Detector Threshold & Refractory ===")
-    best_threshold, best_refractory = tune_detector_threshold(
-        detector_model,
-        D1_path="D1.mat"
-    )
+    if pretest == False:
+        best_threshold, best_refractory = 0.90, 30
+    else:
+        best_threshold, best_refractory = tune_detector_threshold(
+            detector_model,
+            D1_path="D1.mat")
 
     # save the tuned parameters
     with open("outputs/detector_params.txt", "w") as f:
