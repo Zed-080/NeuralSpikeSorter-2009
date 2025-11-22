@@ -6,7 +6,7 @@ import tensorflow as tf
 from scipy.io import savemat
 
 # Import modules from your spike_pipeline
-from spike_pipeline.data_loader.load_datasets import load_test_dataset
+from spike_pipeline.data_loader.load_datasets import load_unlabelled
 from spike_pipeline.inference.run_pipeline_D2_D6 import run_pipeline_D2_D6
 
 # --- Configuration ---
@@ -124,7 +124,7 @@ def main_infer():
         print(f"\n--- Processing {dataset_name}.mat ---")
 
         # Load the raw data for the dataset
-        raw_signal = load_test_dataset(f'{dataset_name}.mat')
+        raw_signal = load_unlabelled(f'{dataset_name}.mat')
 
         # Run the full pipeline and save the results
         # Assuming run_pipeline_D2_D6 saves the output .mat file with Index and Class
