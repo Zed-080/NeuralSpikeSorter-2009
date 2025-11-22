@@ -6,8 +6,8 @@ from spike_pipeline.inference.matching import match_predictions  # type: ignore
 
 def tune_detector_threshold(detector_model,
                             D1_path="D1.mat",
-                            threshold_range=np.linspace(0.7, 0.95, 6),
-                            refractory_range=range(25, 61, 5)):
+                            threshold_range=np.linspace(0.95, 0.95, 3),
+                            refractory_range=range(20, 31, 5)):
 
     d_norm, Index_gt, _ = load_D1(D1_path)
 
