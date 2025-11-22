@@ -7,7 +7,8 @@ from scipy.io import savemat
 
 # Import modules from your spike_pipeline
 from spike_pipeline.data_loader.load_datasets import load_unlabelled
-from spike_pipeline.inference.run_pipeline_D2_D6 import run_pipeline_D2_D6
+# from spike_pipeline.inference.run_pipeline_D2_D6 import run_pipeline_D2_D6
+from spike_pipeline.inference.run_pipeline_D2_D6 import run_inference_dataset
 
 # --- Configuration ---
 # Directory where models are saved and where outputs (predictions) will be placed.
@@ -123,20 +124,19 @@ def main_infer():
     for dataset_name in datasets:
         print(f"\n--- Processing {dataset_name}.mat ---")
 
-        # Load the raw data for the dataset
-        raw_signal = load_unlabelled(f'{dataset_name}.mat')
-
         # Run the full pipeline and save the results
-        # Assuming run_pipeline_D2_D6 saves the output .mat file with Index and Class
+        # Assuming run_inference_dataset saves the output .mat file with Index and Class
         # directly into PREDICTIONS_DIR
-        run_pipeline_D2_D6(
-            raw_signal,
-            detector_model,
-            classifier_model,
-            threshold,
-            refractory_period,
-            output_filepath=os.path.join(
-                PREDICTIONS_DIR, f'{dataset_name}.mat')
+        input_filepath = f'{dataset_name}.mat'
+        output_filepath = os.path.join(PREDICTIONS_DIR, f'{dataset_name}.mat')
+
+        run_inference_dataset(
+            detector_model=detector_model,
+            classifier_model=classifier_model,
+            threshold=threshold,
+            refractory=refractory_period,
+            path=input_filepath,       # Pass the input file path
+            save_path=output_filepath  # Pass the output file path
         )
         print(f"Finished processing {dataset_name}. Results saved.")
 
