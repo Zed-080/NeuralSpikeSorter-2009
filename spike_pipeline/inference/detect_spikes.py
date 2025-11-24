@@ -22,7 +22,15 @@ def sliding_window_predict(model, d_norm, threshold=0.8, refractory=40, window=1
     # collect candidate spike indices
     for i, p in enumerate(probs):
         if p >= threshold:
-            preds.append(i + window // 2)    # center of window
+            window_data = d_norm[i:i+window]
+
+            # Find the index of the minimum value relative to the start of the window (i)
+            relative_min_idx = np.argmin(window_data)
+
+            # The absolute index in the original signal d_norm
+            absolute_min_idx = i + relative_min_idx
+
+            preds.append(absolute_min_idx)
 
     preds = np.array(preds, dtype=np.int64)
 
