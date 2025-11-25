@@ -40,6 +40,15 @@ def run_inference_dataset(detector_model,
     probs = classifier_model.predict(X, verbose=0)
     pred_classes = np.argmax(probs, axis=1) + 1  # convert 0..4 → 1..5
 
+    # Count spikes per class
+    unique, counts = np.unique(pred_classes, return_counts=True)
+    class_counts = dict(zip(unique, counts))
+
+    # Print detection summary
+    print(f"Class counts for {path}:")
+    for cls in range(1, 6):
+        print(f"  Class {cls}: {class_counts.get(cls, 0)} spikes")
+
     spio.savemat(save_path, {
         "Index": np.array(final_indices, dtype=np.int64),
         "Class": pred_classes
