@@ -1,5 +1,6 @@
 import numpy as np
 from .load_datasets import load_D1
+from spike_pipeline.utils.normalization import normalize_window
 
 PRE_SAMPLES = 20
 POST_SAMPLES = 44
