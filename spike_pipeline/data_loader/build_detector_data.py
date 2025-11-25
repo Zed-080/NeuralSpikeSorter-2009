@@ -110,6 +110,9 @@ def build_detector_dataset(path_to_D1, save_prefix=""):
     # 2. negative windows
     X_neg = extract_negative_windows(d_norm, Index)
 
+    # 3. apply augmentation to positives (optional)
+    X_aug = optional_augment(X_pos)
+
     # --- oversample negatives to match target ratio ---
     # TARGET_RATIO  = negative/positive ratio
     num_pos = len(X_pos) + len(X_aug)
@@ -119,9 +122,6 @@ def build_detector_dataset(path_to_D1, save_prefix=""):
     if len(X_neg) < desired_neg:
         reps = int(np.ceil(desired_neg / len(X_neg)))
         X_neg = np.tile(X_neg, (reps, 1))[:desired_neg]
-
-    # 3. apply augmentation to positives (optional)
-    X_aug = optional_augment(X_pos)
 
     # 4. combine
     X = np.concatenate([X_pos, X_aug, X_neg], axis=0)
