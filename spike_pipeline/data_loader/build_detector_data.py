@@ -4,7 +4,7 @@ from .load_datasets import load_D1
 
 WINDOW = 128           # detector window size (128 samples)
 TOL = 5                # +/- tolerance around spike for window start
-HARD_NEG_DIST = 20     # range around a spike to create hard negatives
+HARD_NEG_DIST = 50     # range around a spike to create hard negatives
 
 
 def extract_positive_windows(d, Index):
@@ -28,7 +28,7 @@ def extract_positive_windows(d, Index):
     return np.array(X_pos, dtype=np.float32)
 
 
-def extract_negative_windows(d, Index, num_random=2):
+def extract_negative_windows(d, Index, num_random=10):
     """
     Builds negative windows by sampling regions with no spikes.
     Includes:
