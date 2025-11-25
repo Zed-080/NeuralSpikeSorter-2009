@@ -12,8 +12,12 @@ def run_inference_dataset(detector_model,
                           path,
                           save_path):
 
+    # Load normalised signal
     d_norm = load_unlabelled(path)
 
+    # ---------------------------
+    # 1. Detect spike indices
+    # ---------------------------
     detected = sliding_window_predict(
         detector_model,
         d_norm,
@@ -22,36 +26,42 @@ def run_inference_dataset(detector_model,
         window=128
     )
 
-    X = []
-    final_indices = []
-
-    for idx in detected:
-        w = extract_waveform_64(d_norm, idx)
-        if w is not None:
-            X.append(w)
-            final_indices.append(idx)
-
-    if len(X) == 0:
+    # If no spikes, save empty output
+    if len(detected) == 0:
         spio.savemat(save_path, {"Index": [], "Class": []})
+        print(f"{path} → No spikes detected.")
         return
 
-    X = np.array(X)[..., np.newaxis]
+    # ---------------------------
+    # 2. Extract ALL waveforms at once
+    # ---------------------------
+    X = extract_waveform_64(d_norm, detected)   # <--- FIXED
 
+    # X must be shape (N, 64, 1)
+    if X.ndim == 2:               # (N,64)
+        X = X[:, :, np.newaxis]
+    elif X.shape[1] == 1:         # (N,1,64)
+        X = np.transpose(X, (0, 2, 1))
+
+    # ---------------------------
+    # 3. Classify ALL waveforms at once
+    # ---------------------------
     probs = classifier_model.predict(X, verbose=0)
-    pred_classes = np.argmax(probs, axis=1) + 1  # convert 0..4 → 1..5
+    pred_classes = np.argmax(probs, axis=1) + 1  # 1..5
 
-    # Count spikes per class
-    unique, counts = np.unique(pred_classes, return_counts=True)
-    class_counts = dict(zip(unique, counts))
-
-    # Print detection summary
-    print(f"Class counts for {path}:")
-    for cls in range(1, 6):
-        print(f"  Class {cls}: {class_counts.get(cls, 0)} spikes")
-
+    # ---------------------------
+    # 4. Save output
+    # ---------------------------
     spio.savemat(save_path, {
-        "Index": np.array(final_indices, dtype=np.int64),
+        "Index": np.array(detected, dtype=np.int64),
         "Class": pred_classes
     })
 
-    print(f"{path} → Saved {save_path} with {len(final_indices)} spikes.")
+    # Print summary
+    unique, counts = np.unique(pred_classes, return_counts=True)
+    print(f"Class counts for {path}:")
+    for cls in range(1, 6):
+        print(
+            f"  Class {cls}: {counts[unique.tolist().index(cls)] if cls in unique else 0} spikes")
+
+    print(f"{path} → Saved {save_path} with {len(detected)} spikes.")
