@@ -7,28 +7,36 @@ POST = 44
 WINDOW = PRE + POST   # = 64
 
 
-def extract_waveform_64(d_norm, spike_index):
-    """
-    Extract 64-sample waveform around detected spike.
-    Returns None if out of bounds.
-    """
+def extract_waveform_64(d_norm, spike_indices):
     waveforms = []
     N = len(d_norm)
 
-    start = spike_index - PRE
-    end = spike_index + POST
+    PRE = 20
+    POST = 44
 
-    if start < 0 or end > len(d_norm):
-        return None
+    for s in spike_indices:
+        start = s - PRE
+        end = s + POST
 
-    w = d_norm[start:end]
+        if start < 0 or end > N:
+            continue
 
-    # ensure shape is exactly 64
-    if len(w) != WINDOW:
-        return None
+        w = d_norm[start:end]
 
-    w = normalize_window(w)
+        if len(w) != 64:
+            continue
 
-    waveforms.append(w)
+        # always per-window normalise
+        w = normalize_window(w)
 
-    return np.array(waveforms, dtype=np.float32)
+        waveforms.append(w)
+
+    X = np.array(waveforms, dtype=np.float32)
+
+    # Shape correction
+    if X.ndim == 2:
+        X = X[:, :, np.newaxis]      # (N,64)→(N,64,1)
+    elif X.shape[1] == 1 and X.shape[2] == 64:
+        X = np.transpose(X, (0, 2, 1))  # (N,1,64)→(N,64,1)
+
+    return X
