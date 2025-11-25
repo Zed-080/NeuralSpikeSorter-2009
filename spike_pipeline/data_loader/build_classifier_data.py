@@ -31,10 +31,15 @@ def build_classifier_dataset(path_to_D1, save_prefix=""):
         if len(window) != CLASS_WINDOW:
             continue
 
+        # Per-window normalization
+        window = normalize_window(window)
+
         X_list.append(window)
+
         # Convert 1..5 → 0..4
         y_raw_list.append(int(c) - 1)
 
+    # Convert lists → numpy arrays
     X = np.array(X_list, dtype=np.float32)
     y_raw = np.array(y_raw_list, dtype=np.int64)
 

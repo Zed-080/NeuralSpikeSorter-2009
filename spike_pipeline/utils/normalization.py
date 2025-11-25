@@ -10,10 +10,12 @@ def zscore(x):
     return (x - mu) / sigma
 
 
-def normalize_window(w):
+def normalize_window(w, eps=1e-8):
     """
-    Normalize a single extracted window.
+    Per-window z-score normalisation:
+    (w - mean) / std  for a single 1D window.
+    Adds epsilon to std to avoid divide-by-zero.
     """
     mu = np.mean(w)
-    sigma = np.std(w) + 1e-8
-    return (w - mu) / sigma
+    sigma = np.std(w)
+    return (w - mu) / (sigma + eps)

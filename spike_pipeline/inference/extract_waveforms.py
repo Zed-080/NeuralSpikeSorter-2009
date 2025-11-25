@@ -1,4 +1,6 @@
 import numpy as np
+from spike_pipeline.utils.normalization import normalize_window
+
 
 PRE = 20
 POST = 44
@@ -10,6 +12,9 @@ def extract_waveform_64(d_norm, spike_index):
     Extract 64-sample waveform around detected spike.
     Returns None if out of bounds.
     """
+    waveforms = []
+    N = len(d_norm)
+
     start = spike_index - PRE
     end = spike_index + POST
 
@@ -22,4 +27,8 @@ def extract_waveform_64(d_norm, spike_index):
     if len(w) != WINDOW:
         return None
 
-    return w.astype(np.float32)
+    w = normalize_window(w)
+
+    waveforms.append(w)
+
+    return np.array(waveforms, dtype=np.float32)
