@@ -26,7 +26,7 @@ def main(pretest=True):
 
     print("\n=== Tuning Detector Threshold & Refractory ===")
     if pretest == False:
-        best_threshold, best_refractory = 0.90, 30
+        best_threshold, best_refractory = 0.919, 45
     else:
         best_threshold, best_refractory = tune_detector_threshold(
             detector_model,
