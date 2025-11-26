@@ -1,41 +1,39 @@
 import numpy as np
 
 
-def make_spectral_noise_like(ref_signal, length, fs=25000, seg_len=50000):
+def make_spectral_noise_like(noise_ref, target_length):
     """
-    Build coloured noise with similar spectrum to a reference signal.
-
-    ref_signal: 1D np.array (e.g. D3 after your normal preprocessing)
-    length:     length of noise to generate (len(D1))
+    Match the spectral envelope of noise_ref to generate
+    coloured noise of length target_length.
     """
-    ref_signal = ref_signal.astype(np.float32).flatten()
-    N_ref = len(ref_signal)
 
-    if seg_len > N_ref:
-        seg_len = N_ref
+    # --- FFT of reference noise ---
+    N_ref = len(noise_ref)
+    mag_ref = np.abs(np.fft.rfft(noise_ref))
+    freqs_ref = np.fft.rfftfreq(N_ref)
 
-    # pick a random segment from ref_signal as "noise-ish"
-    start = np.random.randint(0, N_ref - seg_len)
-    seg = ref_signal[start:start + seg_len]
+    # --- FFT bin frequencies for target length ---
+    freqs_target = np.fft.rfftfreq(target_length)
 
-    # FFT of that segment
-    S = np.fft.rfft(seg)
-    mag = np.abs(S) + 1e-8   # avoid divide-by-zero
+    # --- interpolate magnitude to match target FFT resolution ---
+    mag_interp = interp1d(freqs_ref, mag_ref,
+                          kind='linear',
+                          fill_value="extrapolate")(freqs_target)
 
-    # white noise -> frequency domain
-    white = np.random.randn(length).astype(np.float32)
+    # --- generate white noise and colour it ---
+    white = np.random.randn(target_length)
     W = np.fft.rfft(white)
 
-    # shape white noise spectrum to match mag
-    W_coloured = W * (mag / np.abs(W[:mag.shape[0]]))
+    # Avoid division by zero
+    W_norm = np.abs(W)
+    W_norm[W_norm == 0] = 1e-12
 
-    # back to time domain
-    coloured = np.fft.irfft(W_coloured, n=length).astype(np.float32)
+    # Colour the spectrum
+    W_coloured = W * (mag_interp / W_norm)
 
-    # normalise noise to unit std (so we can scale easily)
-    coloured /= (np.std(coloured) + 1e-8)
-
-    return coloured
+    # Return time-domain noise
+    noise = np.fft.irfft(W_coloured, n=target_length)
+    return noise
 
 
 def degrade_with_spectral_noise(clean_signal, noise_ref, noise_scale=1.0):
