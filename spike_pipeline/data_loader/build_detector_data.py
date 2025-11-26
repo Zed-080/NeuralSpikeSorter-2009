@@ -1,5 +1,6 @@
 import numpy as np
-from .load_datasets import load_D1
+from .load_datasets import load_D1, load_unlabelled
+from utils.degradation import degrade_with_spectral_noise
 
 
 WINDOW = 128           # detector window size (128 samples)
@@ -102,51 +103,60 @@ def build_detector_dataset(path_to_D1, save_prefix=""):
       Optional augmentation
       Shuffles and saves X_detector.npy and y_detector.npy
     """
-    d_norm, Index, Class = load_D1(path_to_D1)
+    d_clean, Index, Class = load_D1(path_to_D1)
 
-    # 1. positive windows
-    X_pos = extract_positive_windows(d_norm, Index)
+    # --- load noisy reference datasets (D3, D5 for example) ---
+    d_D3 = load_unlabelled("D3.mat")   # already preprocessed like D1
+    d_D5 = load_unlabelled("D5.mat")
 
-    # 2. negative windows
-    X_neg = extract_negative_windows(d_norm, Index)
+    # --- create degraded versions of D1 ---
+    d_D1_D3noise = degrade_with_spectral_noise(d_clean, d_D3, noise_scale=1.0)
+    d_D1_D5noise = degrade_with_spectral_noise(d_clean, d_D5, noise_scale=1.5)
 
-    # 3. apply augmentation to positives (optional)
+    # 1. positive windows: clean + degraded
+    X_pos_clean = extract_positive_windows(d_clean, Index)
+    X_pos_D3 = extract_positive_windows(d_D1_D3noise, Index)
+    X_pos_D5 = extract_positive_windows(d_D1_D5noise, Index)
+
+    X_pos = np.concatenate([X_pos_clean, X_pos_D3, X_pos_D5], axis=0)
+
+    # 2. negatives: clean + degraded
+    X_neg_clean = extract_negative_windows(d_clean, Index)
+    X_neg_D3 = extract_negative_windows(d_D1_D3noise, Index)
+    X_neg_D5 = extract_negative_windows(d_D1_D5noise, Index)
+
+    X_neg = np.concatenate([X_neg_clean, X_neg_D3, X_neg_D5], axis=0)
+
+    # 3. optional augmentation on positives
     X_aug = optional_augment(X_pos)
 
-    # --- oversample negatives to match target ratio ---
-    # TARGET_RATIO  = negative/positive ratio
+    # 4. oversample negatives to TARGET_RATIO * num_pos (same as you already do)
     num_pos = len(X_pos) + len(X_aug)
-
     desired_neg = TARGET_RATIO * num_pos
 
     if len(X_neg) < desired_neg:
         reps = int(np.ceil(desired_neg / len(X_neg)))
         X_neg = np.tile(X_neg, (reps, 1))[:desired_neg]
 
-    # 4. combine
+    # 5. combine + shuffle (same as before)
     X = np.concatenate([X_pos, X_aug, X_neg], axis=0)
     y = np.concatenate([
-        np.ones(len(X_pos)),         # real positives
-        np.ones(len(X_aug)),         # augmented positives
-        np.zeros(len(X_neg))         # negatives
+        np.ones(len(X_pos)),
+        np.ones(len(X_aug)),
+        np.zeros(len(X_neg))
     ])
 
-    # 5. shuffle
     p = np.random.permutation(len(X))
-    X = X[p]
+    X = X[p][..., np.newaxis]  # add channel
     y = y[p]
 
-    # add channel dimension
-    X = X[..., np.newaxis]
-
-    # 6. save
     np.save(f"{save_prefix}X_detector.npy", X)
     np.save(f"{save_prefix}y_detector.npy", y)
 
-    print(f"Detector dataset built:")
-    print(f"  Positives: {len(X_pos)}")
-    print(f"  Augmented positives: {len(X_aug)}")
-    print(f"  Negatives: {len(X_neg)}")
-    print(f"  Total: {len(X)} windows")
+    print("Detector dataset built:")
+    print(f"  Positives (clean+spec): {len(X_pos)}")
+    print(f"  Augmented positives:    {len(X_aug)}")
+    print(f"  Negatives:              {len(X_neg)}")
+    print(f"  Total:                  {len(X)} windows")
 
     return X, y
