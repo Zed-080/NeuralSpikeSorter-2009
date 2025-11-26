@@ -19,7 +19,7 @@ def evaluate_f1(detector_model, signal, Index_gt, thr, refr):
 
 def tune_detector_threshold(detector_model,
                             D1_path="D1.mat",
-                            threshold_range=np.linspace(0.90, 0.995, 6),
+                            threshold_range=np.linspace(0.90, 0.99, 10),
                             refractory_range=range(30, 61, 5)):
     """
     Multi-SNR threshold tuning:
@@ -74,10 +74,17 @@ def tune_detector_threshold(detector_model,
                 0.3 * f1_D5
             )
 
+            # print(
+            #     f"Thr={thr:.3f}, Refr={refr} | "
+            #     f"Clean={f1_clean:.3f}, D3n={f1_D3:.3f}, D5n={f1_D5:.3f} "
+            #     f"=> Weighted={weighted_f1:.3f}"
+            # )
             print(
                 f"Thr={thr:.3f}, Refr={refr} | "
-                f"Clean={f1_clean:.3f}, D3n={f1_D3:.3f}, D5n={f1_D5:.3f} "
-                f"=> Weighted={weighted_f1:.3f}"
+                f"F1_D1={f1_clean:.3f} | "
+                f"F1_D3n={f1_D3:.3f} | "
+                f"F1_D5n={f1_D5:.3f} | "
+                f"F1_mixed={weighted_f1:.3f}"
             )
 
             # Update best
