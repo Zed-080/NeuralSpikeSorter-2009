@@ -1,6 +1,6 @@
 import numpy as np
 from .load_datasets import load_D1, load_unlabelled
-from utils.degradation import degrade_with_spectral_noise
+from spike_pipeline.utils.degradation import degrade_with_spectral_noise
 
 
 WINDOW = 128           # detector window size (128 samples)
