@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.interpolate import interp1d
 
 
 def make_spectral_noise_like(noise_ref, target_length):
