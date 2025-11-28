@@ -9,7 +9,7 @@ def mad(x):
     return np.median(np.abs(x - np.median(x))) / 0.6745
 
 
-def bandpass_filter(x, fs=25000, low=300, high=3000, order=4):
+def bandpass_filter(x, fs=25000, low=7, high=3000, order=4):
     """
     Standard neural band-pass filter.
     """

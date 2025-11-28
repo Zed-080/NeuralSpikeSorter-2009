@@ -61,7 +61,7 @@ def load_D1(path, fs=25000):
     d = remove_dc_fft(d, fs=fs)
 
     # 2. band-pass filter 300–3000 Hz
-    d = bandpass_filter(d, fs=fs, low=300, high=3000)
+    d = bandpass_filter(d, fs=fs, low=7, high=3000)
 
     # 3. global z-score normalization
     d_norm = global_normalize(d)
