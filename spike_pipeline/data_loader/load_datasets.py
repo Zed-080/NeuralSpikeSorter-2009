@@ -42,9 +42,26 @@ def global_normalize(d):
 
     return (d - mu) / sigma
 
+
+def mad(data):
+    """
+    Robust Standard Deviation estimation using Median Absolute Deviation.
+    Formula: 1.4826 * median(|x - median(x)|)
+    """
+    return 1.4826 * np.median(np.abs(data - np.median(data)))
+
+
+def MAD_normalize(d):
+    """
+    Normalize using Median and MAD (Median Absolute Deviation).
+    This ensures spikes stay the same size even if noise increases.
+    """
+    med = np.median(d)
+    sigma = mad(d) + 1e-8
+    return (d - med) / sigma
+
+
 # Remove DC drift (very low frequencies)
-
-
 def remove_dc_fft(x, fs=25000, cutoff_hz=1):
     N = len(x)
     X = np.fft.rfft(x)
@@ -97,7 +114,8 @@ def load_D1(path, fs=25000, use_matched_filter=False):  # >>>>>>>>>> doing a lot
             print("  Applied matched filter denoising to D1")
 
     # 4. global z-score normalization
-    d_norm = global_normalize(d)
+    # d_norm = global_normalize(d)
+    d_norm = MAD_normalize(d)
 
     return d_norm, Index, Class
 # ==================================================================================
@@ -138,7 +156,8 @@ def load_unlabelled(path, fs=25000, psi=None):  # >>>>>>>>>> doing a lot
         d = matched_filter_denoise(d, psi)
         print(f"  Applied matched filter to {path}")
 
-    d_norm = global_normalize(d)
+    # d_norm = global_normalize(d)
+    d_norm = MAD_normalize(d)
     return d_norm
 # ----------------------------------------------------------------------------------
 
