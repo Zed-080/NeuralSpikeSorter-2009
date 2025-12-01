@@ -6,7 +6,7 @@ from spike_pipeline.utils.degradation import degrade_with_spectral_noise
 WINDOW = 128           # detector window size (128 samples)
 TOL = 5                # +/- tolerance around spike for window start
 HARD_NEG_DIST = 50     # range around a spike to create hard negatives
-TARGET_RATIO = 10      # The negative:positive ratio needd to convey propportion
+# TARGET_RATIO = 10      # The negative:positive ratio needd to convey propportion
 
 
 def extract_positive_windows(d, Index):
@@ -130,13 +130,13 @@ def build_detector_dataset(path_to_D1, save_prefix=""):
     # 3. optional augmentation on positives
     X_aug = optional_augment(X_pos)
 
-    # 4. oversample negatives to TARGET_RATIO * num_pos (same as you already do)
-    num_pos = len(X_pos) + len(X_aug)
-    desired_neg = TARGET_RATIO * num_pos
+    # # 4. oversample negatives to TARGET_RATIO * num_pos (same as you already do)
+    # num_pos = len(X_pos) + len(X_aug)
+    # desired_neg = TARGET_RATIO * num_pos
 
-    if len(X_neg) < desired_neg:
-        reps = int(np.ceil(desired_neg / len(X_neg)))
-        X_neg = np.tile(X_neg, (reps, 1))[:desired_neg]
+    # if len(X_neg) < desired_neg:
+    #     reps = int(np.ceil(desired_neg / len(X_neg)))
+    #     X_neg = np.tile(X_neg, (reps, 1))[:desired_neg]
 
     # 5. combine + shuffle (same as before)
     X = np.concatenate([X_pos, X_aug, X_neg], axis=0)
