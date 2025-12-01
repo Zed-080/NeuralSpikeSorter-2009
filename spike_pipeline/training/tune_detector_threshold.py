@@ -19,8 +19,8 @@ def evaluate_f1(detector_model, signal, Index_gt, thr, refr):
 
 def tune_detector_threshold(detector_model,
                             D1_path="D1.mat",
-                            threshold_range=np.linspace(0.90, 0.99, 10),
-                            refractory_range=range(30, 61, 5)):
+                            threshold_range=np.linspace(0.5, 0.99, 10),
+                            refractory_range=range(30, 61, 15)):
     """
     Multi-SNR threshold tuning:
       Clean D1 (weight 0.4)
