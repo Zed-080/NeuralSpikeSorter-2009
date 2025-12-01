@@ -1,3 +1,5 @@
+import numpy as np
+
 from spike_pipeline.data_loader import (
     build_detector_dataset,
     build_classifier_dataset,
@@ -10,7 +12,8 @@ from spike_pipeline.training import (
 )
 
 
-def main(pretest=True):
+def main(pretest=True, t_min=0.70, t_max=0.99, t_steps=10,
+         r_min=30, r_max=61, r_step=15):
     print("=== Building Detector Dataset ===")
     build_detector_dataset("D1.mat", save_prefix="outputs/")
 
@@ -28,9 +31,18 @@ def main(pretest=True):
     if pretest == False:
         best_threshold, best_refractory = 0.919, 45
     else:
+        # Dynamically create the ranges based on arguments
+        t_range = np.linspace(t_min, t_max, int(t_steps))
+        r_range = range(int(r_min), int(r_max), int(r_step))
+
+        print(f"Sweeping Thresholds: {t_min} -> {t_max} ({t_steps} steps)")
+        print(f"Sweeping Refractory: {r_min} -> {r_max} (step {r_step})")
+
         best_threshold, best_refractory = tune_detector_threshold(
             detector_model,
-            D1_path="D1.mat")
+            D1_path="D1.mat",
+            threshold_range=t_range,
+            refractory_range=r_range)
 
     # save the tuned parameters
     with open("outputs/detector_params.txt", "w") as f:
