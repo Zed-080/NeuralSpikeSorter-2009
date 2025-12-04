@@ -1,55 +1,35 @@
-import numpy as np
-
 from spike_pipeline.data_loader import (
     build_detector_dataset,
-    build_classifier_dataset,
+    build_classifier_dataset,  # Ensure this exists in your project
 )
-
 from spike_pipeline.training import (
     train_detector,
-    tune_detector_threshold,
     train_classifier,
 )
 
 
-def main(pretest=True, t_min=0.70, t_max=0.99, t_steps=10,
-         r_min=30, r_max=61, r_step=15):
-    print("=== Building Detector Dataset ===")
+def main():
+    # 1. Build Data
+    print("=== Building Detector Dataset (Sequence Mode) ===")
+    # This now calls the NEW code we just wrote
     build_detector_dataset("D1.mat", save_prefix="outputs/")
 
     print("\n=== Building Classifier Dataset ===")
+    # This remains unchanged (standard classification)
     build_classifier_dataset("D1.mat", save_prefix="outputs/")
 
-    print("\n=== Training Detector CNN ===")
-    detector_model = train_detector(
+    # 2. Train Detector
+    print("\n=== Training Detector (Sequence Model) ===")
+    # This trains the new Conv1D->Conv1D model
+    train_detector(
         X_path="outputs/X_detector.npy",
         y_path="outputs/y_detector.npy",
         save_path="outputs/spike_detector_model.keras"
     )
 
-    print("\n=== Tuning Detector Threshold & Refractory ===")
-    if pretest == False:
-        best_threshold, best_refractory = 0.919, 45
-    else:
-        # Dynamically create the ranges based on arguments
-        t_range = np.linspace(t_min, t_max, int(t_steps))
-        r_range = range(int(r_min), int(r_max), int(r_step))
-
-        print(f"Sweeping Thresholds: {t_min} -> {t_max} ({t_steps} steps)")
-        print(f"Sweeping Refractory: {r_min} -> {r_max} (step {r_step})")
-
-        best_threshold, best_refractory = tune_detector_threshold(
-            detector_model,
-            D1_path="D1.mat",
-            threshold_range=t_range,
-            refractory_range=r_range)
-
-    # save the tuned parameters
-    with open("outputs/detector_params.txt", "w") as f:
-        f.write(f"{best_threshold},{best_refractory}")
-
-    print("\n=== Training Classifier CNN ===")
-    classifier_model = train_classifier(
+    # 3. Train Classifier
+    print("\n=== Training Classifier ===")
+    train_classifier(
         X_path="outputs/X_classifier.npy",
         y_path="outputs/y_classifier.npy",
         y_raw_path="outputs/y_classifier_raw.npy",
@@ -57,8 +37,7 @@ def main(pretest=True, t_min=0.70, t_max=0.99, t_steps=10,
     )
 
     print("\n🎉 TRAINING COMPLETE 🎉")
-    print(f"Tuned threshold: {best_threshold}")
-    print(f"Tuned refractory: {best_refractory}")
+    print("You can now run main_infer.py to generate predictions.")
 
 
 if __name__ == "__main__":

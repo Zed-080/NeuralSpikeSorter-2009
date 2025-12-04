@@ -1,62 +1,214 @@
+# import numpy as np
+# import os
+# from .load_datasets import load_D1, load_unlabelled
+# from spike_pipeline.utils.degradation import degrade_with_spectral_noise
+# from spike_pipeline.denoise.matched_filter import build_average_spike_template, matched_filter_enhance
+
+# # --- HELPERS ---
+# PRE = 20
+# POST = 44
+# WAVEFORM_LEN = 64
+# N_AUG_POS_CLF = 3
+# SNR_RANGE_EASY = (40.0, 60.0)
+# SNR_RANGE_MED = (20.0, 40.0)
+# SNR_RANGE_HARD = (-5.0, 20.0)
+
+
+# def sample_snr_db():
+#     u = np.random.random()
+#     if u < 0.2:
+#         return float(np.random.uniform(*SNR_RANGE_EASY))
+#     elif u < 0.5:
+#         return float(np.random.uniform(*SNR_RANGE_MED))
+#     else:
+#         return float(np.random.uniform(*SNR_RANGE_HARD))
+
+
+# def add_noise_to_target_snr(x, target_snr_db):
+#     sig_power = np.mean(x ** 2)
+#     if sig_power <= 1e-12:
+#         return x
+#     snr_lin = 10.0 ** (target_snr_db / 10.0)
+#     noise_power = sig_power / snr_lin
+#     noise_std = np.sqrt(noise_power)
+#     return (x + np.random.normal(0.0, noise_std, size=x.shape)).astype(np.float32)
+
+
+# def build_classifier_dataset(path_to_D1, save_prefix="outputs/"):
+#     print(f"Loading D1 from {path_to_D1}...")
+#     d_clean, Index, Class = load_D1(path_to_D1)
+
+#     # 1. Build Template
+#     print("Building Matched Filter Template...")
+#     psi, _, _ = build_average_spike_template(d_clean, Index)
+
+#     # 2. Prepare Signals
+#     raw_versions = [("Clean", d_clean)]
+#     for ds_name in ["D2", "D3", "D4", "D5", "D6"]:
+#         try:
+#             d_noise_ref = load_unlabelled(f"{ds_name}.mat")
+#             d_cloned = degrade_with_spectral_noise(
+#                 d_clean, d_noise_ref, noise_scale=1.0)
+#             raw_versions.append((f"Match_{ds_name}", d_cloned))
+#         except:
+#             pass
+
+#     all_X = []
+#     all_y_raw = []
+
+#     print(f"Extracting Classifier Waveforms (Matched Filtered)...")
+
+#     for name, d_raw_noisy in raw_versions:
+#         # KEY CHANGE: Apply Matched Filter first
+#         d_filtered = matched_filter_enhance(d_raw_noisy, psi)
+
+#         for i, s in enumerate(Index):
+#             label_int = int(Class[i]) - 1
+#             start = s - PRE
+#             end = s + POST
+
+#             if start < 0 or end > len(d_filtered):
+#                 continue
+#             w = d_filtered[start:end]
+#             if len(w) != WAVEFORM_LEN:
+#                 continue
+
+#             # Original
+#             all_X.append(w)
+#             all_y_raw.append(label_int)
+
+#             # Augmented
+#             for _ in range(N_AUG_POS_CLF):
+#                 snr = sample_snr_db()
+#                 w_aug = add_noise_to_target_snr(w, snr)
+#                 scale = np.random.uniform(0.9, 1.1)
+#                 all_X.append(w_aug * scale)
+#                 all_y_raw.append(label_int)
+
+#     # Finalize
+#     X = np.array(all_X, dtype=np.float32)
+#     y_raw = np.array(all_y_raw, dtype=np.int64)
+#     if X.ndim == 2:
+#         X = X[..., np.newaxis]
+
+#     y_onehot = np.zeros((len(y_raw), 5), dtype=np.float32)
+#     y_onehot[np.arange(len(y_raw)), y_raw] = 1.0
+
+#     idx = np.random.permutation(len(X))
+#     X, y_onehot, y_raw = X[idx], y_onehot[idx], y_raw[idx]
+
+#     os.makedirs(os.path.dirname(save_prefix), exist_ok=True)
+#     np.save(f"{save_prefix}X_classifier.npy", X)
+#     np.save(f"{save_prefix}y_classifier.npy", y_onehot)
+#     np.save(f"{save_prefix}y_classifier_raw.npy", y_raw)
+
+#     print(f"Saved Classifier Data: X={X.shape} (Matched Filtered)")
+#     return X, y_onehot, y_raw
+
+
 import numpy as np
-from .load_datasets import load_D1
-from spike_pipeline.utils.normalization import normalize_window
+import os
+from .load_datasets import load_D1, load_unlabelled
+from spike_pipeline.utils.degradation import degrade_with_spectral_noise
+from spike_pipeline.denoise.matched_filter import build_average_spike_template, matched_filter_enhance
 
-PRE_SAMPLES = 20
-POST_SAMPLES = 44
-CLASS_WINDOW = PRE_SAMPLES + POST_SAMPLES  # 64
+# --- HELPERS ---
+PRE = 20
+POST = 44
+WAVEFORM_LEN = 64
+N_AUG_POS_CLF = 3
+SNR_RANGE_EASY = (40.0, 60.0)
+SNR_RANGE_MED = (20.0, 40.0)
+SNR_RANGE_HARD = (-5.0, 20.0)
 
 
-def build_classifier_dataset(path_to_D1, save_prefix=""):
-    """
-    Build classifier training set from D1 and save:
-      X_classifier.npy      (K, 64, 1)
-      y_classifier.npy      (K, 5) one-hot
-      y_classifier_raw.npy  (K,) ints in 0..4
-    """
-    d_norm, Index, Class = load_D1(path_to_D1)
+def sample_snr_db():
+    u = np.random.random()
+    if u < 0.2:
+        return float(np.random.uniform(*SNR_RANGE_EASY))
+    elif u < 0.5:
+        return float(np.random.uniform(*SNR_RANGE_MED))
+    else:
+        return float(np.random.uniform(*SNR_RANGE_HARD))
 
-    X_list = []
-    y_raw_list = []
 
-    N = len(d_norm)
+def add_noise_to_target_snr(x, target_snr_db):
+    sig_power = np.mean(x ** 2)
+    if sig_power <= 1e-12:
+        return x
+    snr_lin = 10.0 ** (target_snr_db / 10.0)
+    noise_power = sig_power / snr_lin
+    noise_std = np.sqrt(noise_power)
+    return (x + np.random.normal(0.0, noise_std, size=x.shape)).astype(np.float32)
 
-    for s, c in zip(Index, Class):
-        start = s - PRE_SAMPLES
-        end = s + POST_SAMPLES
 
-        if start < 0 or end > N:
-            continue
+def build_classifier_dataset(path_to_D1, save_prefix="outputs/"):
+    print(f"Loading D1 from {path_to_D1}...")
+    d_clean, Index, Class = load_D1(path_to_D1)
 
-        window = d_norm[start:end]
-        if len(window) != CLASS_WINDOW:
-            continue
+    # 1. Build Template
+    print("Building Matched Filter Template...")
+    psi, _, _ = build_average_spike_template(d_clean, Index)
 
-        # Per-window normalization
-        window = normalize_window(window)
+    # 2. Prepare Signals
+    raw_versions = [("Clean", d_clean)]
+    for ds_name in ["D2", "D3", "D4", "D5", "D6"]:
+        try:
+            d_noise_ref = load_unlabelled(f"{ds_name}.mat")
+            d_cloned = degrade_with_spectral_noise(
+                d_clean, d_noise_ref, noise_scale=1.0)
+            raw_versions.append((f"Match_{ds_name}", d_cloned))
+        except:
+            pass
 
-        X_list.append(window)
+    all_X = []
+    all_y_raw = []
 
-        # Convert 1..5 → 0..4
-        y_raw_list.append(int(c) - 1)
+    print(f"Extracting Classifier Waveforms (Matched Filtered)...")
 
-    # Convert lists → numpy arrays
-    X = np.array(X_list, dtype=np.float32)
-    y_raw = np.array(y_raw_list, dtype=np.int64)
+    for name, d_raw_noisy in raw_versions:
+        # KEY CHANGE: Apply Matched Filter first
+        d_filtered = matched_filter_enhance(d_raw_noisy, psi)
 
-    # One-hot
-    num_classes = 5
-    y_onehot = np.eye(num_classes)[y_raw]
+        for i, s in enumerate(Index):
+            label_int = int(Class[i]) - 1
+            start = s - PRE
+            end = s + POST
 
-    # Add channel dimension
-    X = X[..., np.newaxis]
+            if start < 0 or end > len(d_filtered):
+                continue
+            w = d_filtered[start:end]
+            if len(w) != WAVEFORM_LEN:
+                continue
 
-    # Save
+            # Original
+            all_X.append(w)
+            all_y_raw.append(label_int)
+
+            # Augmented
+            for _ in range(N_AUG_POS_CLF):
+                snr = sample_snr_db()
+                w_aug = add_noise_to_target_snr(w, snr)
+                scale = np.random.uniform(0.9, 1.1)
+                all_X.append(w_aug * scale)
+                all_y_raw.append(label_int)
+
+    # Finalize
+    X = np.array(all_X, dtype=np.float32)
+    y_raw = np.array(all_y_raw, dtype=np.int64)
+    if X.ndim == 2:
+        X = X[..., np.newaxis]
+
+    y_onehot = np.zeros((len(y_raw), 5), dtype=np.float32)
+    y_onehot[np.arange(len(y_raw)), y_raw] = 1.0
+
+    idx = np.random.permutation(len(X))
+    X, y_onehot, y_raw = X[idx], y_onehot[idx], y_raw[idx]
+
+    os.makedirs(os.path.dirname(save_prefix), exist_ok=True)
     np.save(f"{save_prefix}X_classifier.npy", X)
     np.save(f"{save_prefix}y_classifier.npy", y_onehot)
     np.save(f"{save_prefix}y_classifier_raw.npy", y_raw)
 
-    print("Classifier dataset built:")
-    print(f"  Spikes used: {len(X)}")
-
+    print(f"Saved Classifier Data: X={X.shape} (Matched Filtered)")
     return X, y_onehot, y_raw

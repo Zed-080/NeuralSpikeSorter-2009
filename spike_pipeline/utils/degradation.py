@@ -47,3 +47,20 @@ def degrade_with_spectral_noise(clean_signal, noise_ref, noise_scale=1.0):
     noise = make_spectral_noise_like(noise_ref, len(clean_signal))
     degraded = clean_signal + noise_scale * noise
     return degraded.astype(np.float32)
+
+
+def add_noise_to_target_snr(x, target_snr_db):
+    """
+    Adds Gaussian noise to a window x to match target_snr_db.
+    Defined locally to avoid ImportErrors.
+    """
+    sig_power = np.mean(x ** 2)
+    if sig_power <= 1e-12:
+        return x
+
+    snr_lin = 10.0 ** (target_snr_db / 10.0)
+    noise_power = sig_power / snr_lin
+    noise_std = np.sqrt(noise_power)
+
+    noise = np.random.normal(0.0, noise_std, size=x.shape)
+    return (x + noise).astype(np.float32)
