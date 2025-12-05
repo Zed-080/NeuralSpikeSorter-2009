@@ -225,6 +225,10 @@ def build_detector_dataset(path_to_D1, save_prefix="outputs/"):
         # This aligns the training data domain with your inference pipeline.
         d_filtered = matched_filter_enhance(d_raw_noisy, psi)
 
+        # B. CRITICAL FIX: Normalize to std=1 to match Inference Pipeline
+        d_filtered = (d_filtered - d_filtered.mean()) / \
+            (d_filtered.std() + 1e-8)
+
         # A. POSITIVE WINDOWS
         for s in Index:
             start = s - TOL
