@@ -170,6 +170,10 @@ def build_classifier_dataset(path_to_D1, save_prefix="outputs/"):
         # KEY CHANGE: Apply Matched Filter first
         d_filtered = matched_filter_enhance(d_raw_noisy, psi)
 
+        # Normalize to match inference
+        d_filtered = (d_filtered - d_filtered.mean()) / \
+            (d_filtered.std() + 1e-8)
+
         for i, s in enumerate(Index):
             label_int = int(Class[i]) - 1
             start = s - PRE
