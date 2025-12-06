@@ -100,22 +100,22 @@ def load_D1(path, fs=25000, use_matched_filter=False):  # >>>>>>>>>> doing a lot
     """
     d, Index, Class = load_mat(path)
 
-    # 1. remove DC drift
-    d = remove_dc_fft(d, fs=fs)
+    # # 1. remove DC drift
+    # d = remove_dc_fft(d, fs=fs)
 
-    # 2. band-pass filter 300–3000 Hz
-    d = bandpass_filter(d, fs=fs, low=7, high=3000)
+    # # 2. band-pass filter 300–3000 Hz
+    # d = bandpass_filter(d, fs=fs, low=7, high=3000)
 
-    # 3. OPTIONAL: matched filter denoising (NEW)
-    if use_matched_filter:
-        psi, _, _ = build_average_mother(d, Index)
-        if psi is not None:
-            d = matched_filter_denoise(d, psi)
-            print("  Applied matched filter denoising to D1")
+    # # 3. OPTIONAL: matched filter denoising (NEW)
+    # if use_matched_filter:
+    #     psi, _, _ = build_average_mother(d, Index)
+    #     if psi is not None:
+    #         d = matched_filter_denoise(d, psi)
+    #         print("  Applied matched filter denoising to D1")
 
     # 4. global z-score normalization
-    # d_norm = global_normalize(d)
-    d_norm = MAD_normalize(d)
+    d_norm = global_normalize(d)
+    # d_norm = MAD_normalize(d)
 
     return d_norm, Index, Class
 # ==================================================================================
@@ -148,16 +148,16 @@ def load_unlabelled(path, fs=25000, psi=None):  # >>>>>>>>>> doing a lot
         d_norm: normalized signal
     """
     d, _, _ = load_mat(path)
-    d = remove_dc_fft(d, fs=fs)
-    d = bandpass_filter(d, fs=fs, low=7, high=3000)
+    # d = remove_dc_fft(d, fs=fs)
+    # d = bandpass_filter(d, fs=fs, low=7, high=3000)
 
-    # Apply matched filter if wavelet provided
-    if psi is not None:
-        d = matched_filter_denoise(d, psi)
-        print(f"  Applied matched filter to {path}")
+    # # Apply matched filter if wavelet provided
+    # if psi is not None:
+    #     d = matched_filter_denoise(d, psi)
+    #     print(f"  Applied matched filter to {path}")
 
-    # d_norm = global_normalize(d)
-    d_norm = MAD_normalize(d)
+    d_norm = global_normalize(d)
+    # d_norm = MAD_normalize(d)
     return d_norm
 # ----------------------------------------------------------------------------------
 

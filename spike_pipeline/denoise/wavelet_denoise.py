@@ -15,11 +15,10 @@ from spike_pipeline.data_loader.load_datasets import load_D1
 
 FS_DEFAULT = 25000.0  # Hz
 
+# Robustly find root (2 levels up from denoise)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_RAW = PROJECT_ROOT
-
-# 2. Define Output Directory (for debugging/saving)
-#    We use 'outputs/denoised' so it stays separate from your code.
+# Point explicitly to the 'data' folder
+DATA_RAW = PROJECT_ROOT / "data"
 DATA_DENOISED = PROJECT_ROOT / "outputs" / "denoised"
 DATA_DENOISED.mkdir(parents=True, exist_ok=True)
 
@@ -126,7 +125,8 @@ def get_or_build_template():
     global PSI_TEMPLATE
     if PSI_TEMPLATE is None:
         print("Building matched filter template from D1...")
-        d1_norm, spike_idx, _ = load_D1("D1.mat")
+        # FIX: Use absolute path to D1
+        d1_norm, spike_idx, _ = load_D1(DATA_RAW / "D1.mat")
         psi, _, _ = build_average_spike_template(d1_norm, spike_idx)
         PSI_TEMPLATE = psi
     return PSI_TEMPLATE

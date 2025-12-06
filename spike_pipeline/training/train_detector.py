@@ -26,7 +26,7 @@ def train_detector(X_path="outputs/X_detector.npy",
     model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=20,
+        epochs=15,
         batch_size=64,
         callbacks=[es],
         verbose=1

@@ -3,3 +3,4 @@ scipy
 tensorflow
 scikit-learn
 matplotlib
+pywavelets  

@@ -26,8 +26,8 @@ def extract_waveform_64(d_norm, spike_indices):
         if len(w) != 64:
             continue
 
-        # always per-window normalise
-        w = normalize_window(w)
+        # # always per-window normalise
+        # w = normalize_window(w)
 
         waveforms.append(w)
 

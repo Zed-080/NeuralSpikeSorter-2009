@@ -1,66 +1,63 @@
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy import signal
+
+# --- Constants matching src/utils/noise_matcher.py ---
+FS = 25000
+BP_LOW = 7
+BP_HIGH = 3000
 
 
-def make_spectral_noise_like(noise_ref, target_length):
+def bandpass_filter(x, fs=FS, low=BP_LOW, high=BP_HIGH, order=4):
+    """Standard neural band-pass filter."""
+    nyq = fs * 0.5
+    b, a = signal.butter(order, [low/nyq, high/nyq], btype="band")
+    return signal.filtfilt(b, a, x).astype(np.float32)
+
+
+def estimate_noise_std(x):
     """
-    Match the spectral envelope of noise_ref to generate
-    coloured noise of length target_length.
+    Robust estimation of noise standard deviation from src.
+    Excludes high-amplitude spikes (threshold of 3.0).
     """
-
-    # --- FFT of reference noise ---
-    N_ref = len(noise_ref)
-    mag_ref = np.abs(np.fft.rfft(noise_ref))
-    freqs_ref = np.fft.rfftfreq(N_ref)
-
-    # --- FFT bin frequencies for target length ---
-    freqs_target = np.fft.rfftfreq(target_length)
-
-    # --- interpolate magnitude to match target FFT resolution ---
-    mag_interp = interp1d(freqs_ref, mag_ref,
-                          kind='linear',
-                          fill_value="extrapolate")(freqs_target)
-
-    # --- generate white noise and colour it ---
-    white = np.random.randn(target_length)
-    W = np.fft.rfft(white)
-
-    # Avoid division by zero
-    W_norm = np.abs(W)
-    W_norm[W_norm == 0] = 1e-12
-
-    # Colour the spectrum
-    W_coloured = W * (mag_interp / W_norm)
-
-    # Return time-domain noise
-    noise = np.fft.irfft(W_coloured, n=target_length)
-    return noise
+    mask = np.abs(x) < 3.0
+    if mask.sum() < 100:
+        return float(np.std(x))
+    return float(np.std(x[mask]))
 
 
 def degrade_with_spectral_noise(clean_signal, noise_ref, noise_scale=1.0):
     """
-    clean_signal: D1 (after your usual preprocessing)
-    noise_ref:    e.g. D3 (after same preprocessing)
-    noise_scale:  multiplier controlling SNR (bigger = noisier)
+    MATCHES SRC: 'noise_match_d1'.
+
+    Takes RAW D1 and RAW Target.
+    1. Estimates noise floor from Bandpassed Target.
+    2. Generates matching Gaussian noise.
+    3. Adds noise to RAW D1.
+    4. Bandpasses the result.
     """
-    clean_signal = clean_signal.astype(np.float32).flatten()
-    noise = make_spectral_noise_like(noise_ref, len(clean_signal))
-    degraded = clean_signal + noise_scale * noise
-    return degraded.astype(np.float32)
+    rng = np.random.default_rng(42)
+
+    # 1. Bandpass target to get true noise stats (excludes DC drift)
+    tgt_bp = bandpass_filter(noise_ref)
+    tgt_noise_std = estimate_noise_std(tgt_bp)
+
+    # 2. Generate White Noise scaled to target level
+    #    (src generates unit gaussian * scaled ratio. Math simplifies to this)
+    noise = rng.normal(0.0, tgt_noise_std,
+                       size=clean_signal.shape) * noise_scale
+
+    # 3. Add to RAW D1
+    degraded_raw = clean_signal + noise
+
+    # 4. Final Bandpass (Crucial: src always bandpasses the noisy output)
+    return bandpass_filter(degraded_raw)
 
 
 def add_noise_to_target_snr(x, target_snr_db):
-    """
-    Adds Gaussian noise to a window x to match target_snr_db.
-    Defined locally to avoid ImportErrors.
-    """
+    """Legacy helper for simple Gaussian augmentation on windows."""
     sig_power = np.mean(x ** 2)
     if sig_power <= 1e-12:
         return x
-
     snr_lin = 10.0 ** (target_snr_db / 10.0)
-    noise_power = sig_power / snr_lin
-    noise_std = np.sqrt(noise_power)
-
-    noise = np.random.normal(0.0, noise_std, size=x.shape)
-    return (x + noise).astype(np.float32)
+    noise_std = np.sqrt(sig_power / snr_lin)
+    return (x + np.random.normal(0.0, noise_std, size=x.shape)).astype(np.float32)

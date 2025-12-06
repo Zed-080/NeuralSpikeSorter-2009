@@ -1,117 +1,124 @@
 import numpy as np
+import os
+from pathlib import Path  # <--- Need this
+
 from spike_pipeline.data_loader.load_datasets import load_D1, load_unlabelled
 from spike_pipeline.utils.degradation import degrade_with_spectral_noise
 from spike_pipeline.inference.matching import match_predictions
 
+# --- Config (Robust Paths) ---
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  # Go up 2 levels to root
+DATA_RAW = PROJECT_ROOT / "data"                    # Points to /data
+OUTPUT_DIR = PROJECT_ROOT / "outputs"               # Points to /outputs
+CONFIG_PATH = OUTPUT_DIR / "detector_config.npz"
 
-# -----------------------------------------------------------
-# 1. OPTIMIZED HELPERS (Splitting Prediction from Thresholding)
-# -----------------------------------------------------------
-def get_model_probabilities(model, d_norm, window=128):
-    """
-    Run the heavy CNN inference ONCE to get raw probabilities.
-    """
-    N = len(d_norm)
-    # Build all windows (vectorized)
-    # Note: For very large signals, you might need batching,
-    # but for D1 (1.44M samples) this usually fits in Colab RAM.
-    X = np.zeros((N - window, window, 1), dtype=np.float32)
-    for i in range(N - window):
-        X[i, :, 0] = d_norm[i:i+window]
-
-    # Predict
-    probs = model.predict(X, verbose=0).flatten()
-    return probs
+WINDOW_LEN = 120  # Detector window length
+DET_LABEL_TOL = 5
 
 
-def predict_from_probs(probs, threshold, refractory):
-    """
-    Apply threshold and refractory to PRE-CALCULATED probabilities.
-    This is instant (no CNN inference).
-    """
-    # 1. Threshold
-    # specific indices where prob > threshold
-    candidate_indices = np.where(probs >= threshold)[0]
+def sliding_window_probs_in_memory(model, d_norm, window_len=120, batch_size=2048):
+    d_norm = np.asarray(d_norm, dtype=np.float32)
+    N = d_norm.shape[0]
+    starts = np.arange(0, N - window_len + 1, dtype=np.int64)
+    probs = np.empty((len(starts), window_len), dtype=np.float32)
 
-    # 2. Refractory (Greedy suppression)
-    if len(candidate_indices) == 0:
+    for i in range(0, len(starts), batch_size):
+        batch_indices = starts[i:i + batch_size]
+        batch_windows = np.stack([d_norm[s:s + window_len]
+                                 for s in batch_indices])
+        p = model.predict(batch_windows[..., np.newaxis], verbose=0)
+        probs[i:i + len(batch_indices), :] = np.squeeze(p, axis=-1)
+
+    return probs, starts
+
+
+def apply_refractory_fast(probs, starts, threshold, refractory, center_offset):
+    center_probs = probs[:, center_offset]
+    cand_window_indices = np.where(center_probs >= threshold)[0]
+
+    if len(cand_window_indices) == 0:
         return np.array([], dtype=np.int64)
 
-    kept_indices = [candidate_indices[0]]
-    for idx in candidate_indices[1:]:
-        if idx - kept_indices[-1] >= refractory:
-            kept_indices.append(idx)
+    absolute_times = starts[cand_window_indices] + center_offset
+    kept_spikes = []
+    last_spike = -np.inf
 
-    return np.array(kept_indices, dtype=np.int64)
+    for t in absolute_times:
+        if t - last_spike >= refractory:
+            kept_spikes.append(t)
+            last_spike = t
+
+    return np.array(kept_spikes, dtype=np.int64)
 
 
-# -----------------------------------------------------------
-# 2. MAIN TUNING FUNCTION
-# -----------------------------------------------------------
 def tune_detector_threshold(detector_model,
-                            D1_path="D1.mat",
+                            # Remove default "D1.mat" string to avoid confusion
                             threshold_range=np.linspace(0.5, 0.99, 10),
                             refractory_range=range(30, 61, 15)):
 
-    # --- A. Setup Datasets ---
-    print("Preparing datasets for tuning...")
-    d_clean, Index_gt, _ = load_D1(D1_path)
-    d_D3 = load_unlabelled("D3.mat")
-    d_D5 = load_unlabelled("D5.mat")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Create degraded versions
+    print("Preparing datasets for tuning...")
+
+    # --- FIX: Use DATA_RAW to find files ---
+    d1_path = DATA_RAW / "D1.mat"
+    if not d1_path.exists():
+        print(f"Error: D1.mat not found at {d1_path}")
+        return 0.75, 45  # Return defaults on failure
+
+    d_clean, Index_gt, _ = load_D1(d1_path)
+    d_D3 = load_unlabelled(DATA_RAW / "D3.mat")
+    d_D5 = load_unlabelled(DATA_RAW / "D5.mat")
+    # ---------------------------------------
+
+    # Generate noisy versions for robust tuning
     d_D1_D3 = degrade_with_spectral_noise(d_clean, d_D3, noise_scale=1.0)
     d_D1_D5 = degrade_with_spectral_noise(d_clean, d_D5, noise_scale=1.5)
 
-    # --- B. PRE-CALCULATE PROBABILITIES (The Speed Fix) ---
-    print("\nPre-calculating CNN probabilities (running inference 3 times)...")
+    print("\nPre-calculating CNN probabilities (this takes a minute)...")
+    probs_clean, starts_clean = sliding_window_probs_in_memory(
+        detector_model, d_clean, WINDOW_LEN)
+    probs_D3, starts_D3 = sliding_window_probs_in_memory(
+        detector_model, d_D1_D3, WINDOW_LEN)
+    probs_D5, starts_D5 = sliding_window_probs_in_memory(
+        detector_model, d_D1_D5, WINDOW_LEN)
 
-    print("  1/3: Clean D1...")
-    probs_clean = get_model_probabilities(detector_model, d_clean)
-
-    print("  2/3: D1 + D3 Noise...")
-    probs_D3 = get_model_probabilities(detector_model, d_D1_D3)
-
-    print("  3/3: D1 + D5 Noise...")
-    probs_D5 = get_model_probabilities(detector_model, d_D1_D5)
-
-    print("Done! Now starting grid search (instant)...")
-    print("Weights: Clean=0.4 | D3noise=0.3 | D5noise=0.3\n")
+    print("Grid search (Clean=0.4 | D3=0.3 | D5=0.3)...")
 
     best_score = -1
-    best_thr = None
-    best_refr = None
+    best_thr = 0.8
+    best_refr = 45
+    center_off = WINDOW_LEN // 2
 
-    # --- C. Fast Grid Search ---
-    # Now we just loop over math, not model inference
     for thr in threshold_range:
         for refr in refractory_range:
+            preds_c = apply_refractory_fast(
+                probs_clean, starts_clean, thr, refr, center_off)
+            preds_3 = apply_refractory_fast(
+                probs_D3, starts_D3, thr, refr, center_off)
+            preds_5 = apply_refractory_fast(
+                probs_D5, starts_D5, thr, refr, center_off)
 
-            # 1. Clean Score
-            preds = predict_from_probs(probs_clean, thr, refr)
-            f1_clean = match_predictions(preds, Index_gt, tolerance=50)["f1"]
+            f1_c = match_predictions(preds_c, Index_gt)["f1"]
+            f1_3 = match_predictions(preds_3, Index_gt)["f1"]
+            f1_5 = match_predictions(preds_5, Index_gt)["f1"]
 
-            # 2. D3 Noise Score
-            preds = predict_from_probs(probs_D3, thr, refr)
-            f1_D3 = match_predictions(preds, Index_gt, tolerance=50)["f1"]
+            w_f1 = (0.4 * f1_c + 0.3 * f1_3 + 0.3 * f1_5)
 
-            # 3. D5 Noise Score
-            preds = predict_from_probs(probs_D5, thr, refr)
-            f1_D5 = match_predictions(preds, Index_gt, tolerance=50)["f1"]
-
-            # Weighted Average
-            weighted_f1 = (0.4 * f1_clean + 0.3 * f1_D3 + 0.3 * f1_D5)
-
-            print(f"Thr={thr:.3f}, Refr={refr} | F1_Mixed={weighted_f1:.3f}")
-
-            if weighted_f1 > best_score:
-                best_score = weighted_f1
+            if w_f1 > best_score:
+                best_score = w_f1
                 best_thr = thr
                 best_refr = refr
 
-    print("\n=== Best Multi-SNR Settings ===")
-    print(f"Threshold: {best_thr}")
+    print(f"\n=== Best Settings Found ===")
+    print(f"Threshold: {best_thr:.3f}")
     print(f"Refractory: {best_refr}")
     print(f"Weighted F1: {best_score:.3f}")
+
+    np.savez(CONFIG_PATH,
+             decision_threshold=best_thr,
+             refractory_suppression=best_refr,
+             best_f1=best_score)
+    print(f"Saved tuning config to {CONFIG_PATH}")
 
     return best_thr, best_refr

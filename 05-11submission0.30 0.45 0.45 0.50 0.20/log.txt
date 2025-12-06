@@ -1,0 +1,166 @@
+(svenv) PS C:\Users\Zavier\OneDrive\Documents\Third Year\Modules\Computer_Engineering\Coursework\Source\Repos\NeuralSpikeSorter-2009> python main_runner.py
+2025-12-05 10:22:19.920908: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-12-05 10:22:24.085573: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+=== Building Detector Dataset (Sequence Mode) ===
+Loading Clean D1...
+Building Matched Filter Template...
+
+Applying Matched Filter, Normalizing & Extracting Windows...
+Saved Detector Data: X=(104448, 128, 1) (Normalized & Matched Filtered)
+
+=== Building Classifier Dataset ===
+Loading D1 from D1.mat...
+Building Matched Filter Template...
+Extracting Classifier Waveforms (Matched Filtered & Normalized)...
+Saved Classifier Data: X=(52224, 64, 1) (Normalized & Matched Filtered)
+
+=== Training Detector (Sequence Model) ===
+2025-12-05 10:22:36.996946: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Epoch 1/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 15s 10ms/step - accuracy: 0.9732 - loss: 0.0981 - val_accuracy: 0.9751 - val_loss: 0.0788
+Epoch 2/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 13s 10ms/step - accuracy: 0.9755 - loss: 0.0754 - val_accuracy: 0.9755 - val_loss: 0.0739
+Epoch 3/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 11s 9ms/step - accuracy: 0.9763 - loss: 0.0714 - val_accuracy: 0.9767 - val_loss: 0.0702
+Epoch 4/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 12s 9ms/step - accuracy: 0.9771 - loss: 0.0691 - val_accuracy: 0.9765 - val_loss: 0.0694
+Epoch 5/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 15s 11ms/step - accuracy: 0.9775 - loss: 0.0679 - val_accuracy: 0.9775 - val_loss: 0.0681
+Epoch 6/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 18s 14ms/step - accuracy: 0.9779 - loss: 0.0667 - val_accuracy: 0.9779 - val_loss: 0.0668
+Epoch 7/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 32s 24ms/step - accuracy: 0.9781 - loss: 0.0660 - val_accuracy: 0.9782 - val_loss: 0.0660
+Epoch 8/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 32s 24ms/step - accuracy: 0.9784 - loss: 0.0652 - val_accuracy: 0.9783 - val_loss: 0.0655
+Epoch 9/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 25s 19ms/step - accuracy: 0.9785 - loss: 0.0646 - val_accuracy: 0.9783 - val_loss: 0.0650
+Epoch 10/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 21s 16ms/step - accuracy: 0.9786 - loss: 0.0641 - val_accuracy: 0.9784 - val_loss: 0.0648
+Epoch 11/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 21s 16ms/step - accuracy: 0.9787 - loss: 0.0639 - val_accuracy: 0.9786 - val_loss: 0.0643
+Epoch 12/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 24s 18ms/step - accuracy: 0.9788 - loss: 0.0634 - val_accuracy: 0.9786 - val_loss: 0.0646
+Epoch 13/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 26s 20ms/step - accuracy: 0.9789 - loss: 0.0632 - val_accuracy: 0.9785 - val_loss: 0.0643
+Epoch 14/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 21s 16ms/step - accuracy: 0.9790 - loss: 0.0630 - val_accuracy: 0.9787 - val_loss: 0.0635
+Epoch 15/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 19s 15ms/step - accuracy: 0.9790 - loss: 0.0628 - val_accuracy: 0.9788 - val_loss: 0.0633
+Epoch 16/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 20s 15ms/step - accuracy: 0.9790 - loss: 0.0626 - val_accuracy: 0.9787 - val_loss: 0.0637
+Epoch 17/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 20s 15ms/step - accuracy: 0.9791 - loss: 0.0624 - val_accuracy: 0.9789 - val_loss: 0.0630
+Epoch 18/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 19s 15ms/step - accuracy: 0.9791 - loss: 0.0623 - val_accuracy: 0.9787 - val_loss: 0.0632
+Epoch 19/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 22s 17ms/step - accuracy: 0.9791 - loss: 0.0622 - val_accuracy: 0.9789 - val_loss: 0.0629
+Epoch 20/20
+1306/1306 ━━━━━━━━━━━━━━━━━━━━ 28s 21ms/step - accuracy: 0.9791 - loss: 0.0621 - val_accuracy: 0.9787 - val_loss: 0.0631
+Detector model saved to: outputs/spike_detector_model.keras
+
+=== Training Classifier ===
+Epoch 1/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 19s 14ms/step - accuracy: 0.7566 - loss: 0.8013 - val_accuracy: 0.8786 - val_loss: 0.4849
+Epoch 2/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 6s 10ms/step - accuracy: 0.8576 - loss: 0.4911 - val_accuracy: 0.8848 - val_loss: 0.3835
+Epoch 3/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 7s 11ms/step - accuracy: 0.8718 - loss: 0.4281 - val_accuracy: 0.8937 - val_loss: 0.3476
+Epoch 4/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 9s 14ms/step - accuracy: 0.8785 - loss: 0.3980 - val_accuracy: 0.8947 - val_loss: 0.3288
+Epoch 5/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 8s 13ms/step - accuracy: 0.8829 - loss: 0.3760 - val_accuracy: 0.8986 - val_loss: 0.3133
+Epoch 6/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 9s 11ms/step - accuracy: 0.8880 - loss: 0.3600 - val_accuracy: 0.9000 - val_loss: 0.3057
+Epoch 7/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 8s 12ms/step - accuracy: 0.8909 - loss: 0.3464 - val_accuracy: 0.9032 - val_loss: 0.2961
+Epoch 8/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 8s 12ms/step - accuracy: 0.8928 - loss: 0.3382 - val_accuracy: 0.9066 - val_loss: 0.2835
+Epoch 9/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 9s 13ms/step - accuracy: 0.8952 - loss: 0.3265 - val_accuracy: 0.9071 - val_loss: 0.2793
+Epoch 10/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 10s 14ms/step - accuracy: 0.8959 - loss: 0.3172 - val_accuracy: 0.9107 - val_loss: 0.2731
+Epoch 11/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 8s 12ms/step - accuracy: 0.8968 - loss: 0.3142 - val_accuracy: 0.9064 - val_loss: 0.2755
+Epoch 12/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 8s 12ms/step - accuracy: 0.8988 - loss: 0.3072 - val_accuracy: 0.9132 - val_loss: 0.2627
+Epoch 13/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 7s 11ms/step - accuracy: 0.9003 - loss: 0.2987 - val_accuracy: 0.9098 - val_loss: 0.2671
+Epoch 14/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 8s 13ms/step - accuracy: 0.9012 - loss: 0.2981 - val_accuracy: 0.9110 - val_loss: 0.2659
+Epoch 15/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 9s 13ms/step - accuracy: 0.9038 - loss: 0.2884 - val_accuracy: 0.9074 - val_loss: 0.2648
+Epoch 16/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 8s 13ms/step - accuracy: 0.9036 - loss: 0.2869 - val_accuracy: 0.9140 - val_loss: 0.2527
+Epoch 17/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 16s 25ms/step - accuracy: 0.9052 - loss: 0.2794 - val_accuracy: 0.9153 - val_loss: 0.2497
+Epoch 18/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 10s 15ms/step - accuracy: 0.9055 - loss: 0.2777 - val_accuracy: 0.9122 - val_loss: 0.2557
+Epoch 19/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 9s 14ms/step - accuracy: 0.9063 - loss: 0.2753 - val_accuracy: 0.9143 - val_loss: 0.2482
+Epoch 20/20
+653/653 ━━━━━━━━━━━━━━━━━━━━ 9s 14ms/step - accuracy: 0.9064 - loss: 0.2739 - val_accuracy: 0.9138 - val_loss: 0.2514
+Classifier model saved to: outputs/spike_classifier_model.keras
+
+🎉 TRAINING COMPLETE 🎉
+You can now run main_infer.py to generate predictions.
+
+--- Processing D2.mat ---
+
+=== Processing D2 ===
+Denoising D2...
+
+Denoising D2...
+Building matched filter template from D1...
+Using threshold: 0.3 for D2
+Running sliding window detector...
+Classifying...
+Saved 3199 spikes to outputs\predictions\D2.mat
+
+--- Processing D3.mat ---
+
+=== Processing D3 ===
+Denoising D3...
+
+Denoising D3...
+Using threshold: 0.45 for D3
+Running sliding window detector...
+Classifying...
+Saved 2501 spikes to outputs\predictions\D3.mat
+
+--- Processing D4.mat ---
+
+=== Processing D4 ===
+Denoising D4...
+
+Denoising D4...
+Using threshold: 0.45 for D4
+Running sliding window detector...
+Classifying...
+Saved 2501 spikes to outputs\predictions\D4.mat
+
+--- Processing D5.mat ---
+
+=== Processing D5 ===
+Denoising D5...
+
+Denoising D5...
+Using threshold: 0.5 for D5
+Running sliding window detector...
+Classifying...
+Saved 2953 spikes to outputs\predictions\D5.mat
+
+--- Processing D6.mat ---
+
+=== Processing D6 ===
+Denoising D6...
+
+Denoising D6...
+Using threshold: 0.2 for D6
+Running sliding window detector...
+Classifying...
+Saved 13370 spikes to outputs\predictions\D6.mat
+--------------------------------------------------
+STARTING SUBMISSION PREPARATION
+SUCCESS: Submission ZIP created: NeuralSpikeSorter_Submission.zip
+(svenv) PS C:\Users\Zavier\OneDrive\Documents\Third Year\Modules\Computer_Engineering\Coursework\Source\Repos\NeuralSpikeSorter-2009>                                  
