@@ -114,7 +114,7 @@ import numpy as np
 PRE = 20
 POST = 44
 WAVEFORM_LEN = 64
-N_AUG_POS_CLF = 3
+N_AUG_POS_CLF = 0  # seems to effecively be 0 in better run
 RNG_SEED = 42
 
 SNR_RANGE_EASY = (40.0, 60.0)

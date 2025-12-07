@@ -295,9 +295,9 @@ def build_detector_data(d_norm: np.ndarray, spike_idx: np.ndarray):
         final_y.append(wb)
         # Augment
         for _ in range(N_AUG_POS_DET):
-            w_aug = augment_window(w, rng)
+            # w_aug = augment_window(w, rng) # This line was doubling the augmentation process
             w_aug = add_noise_to_target_snr_window(
-                w_aug, sample_snr_db(rng), rng)
+                w, sample_snr_db(rng), rng)  # <-- Corrected line pass w straght into here hopefully this works
             final_X.append(w_aug)
             final_y.append(wb)
 

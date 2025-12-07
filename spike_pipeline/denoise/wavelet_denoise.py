@@ -13,7 +13,7 @@ from spike_pipeline.data_loader.load_datasets import load_D1
 
 # ----------------- Constants & paths -----------------
 
-FS_DEFAULT = 25000.0  # Hz
+FS_DEFAULT = 24000  # was 25000.0  # Hz
 
 # Robustly find root (2 levels up from denoise)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

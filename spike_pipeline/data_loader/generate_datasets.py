@@ -64,7 +64,6 @@ def main():
 
     X_det_list, y_det_list = [], []
     X_clf_list, y_clf_list, y_clf_raw_list = [], [], []
-
     for name, d_signal in d_versions:
         print(f"Processing version: {name}...")
 

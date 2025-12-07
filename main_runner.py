@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # --- IMPORT MODULES ---
 
 # --- CONFIGURATION ---
-RUN_TUNING = False  # Set False to skip tuning and use cached config
+RUN_TUNING = True  # Set False to skip tuning and use cached config
 
 
 def main():

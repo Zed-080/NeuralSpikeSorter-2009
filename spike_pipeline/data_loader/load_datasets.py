@@ -26,6 +26,7 @@ def load_mat(path):
     # ensure Index / Class are always 1D arrays if present
     if Index is not None:
         Index = np.array(Index, dtype=np.int64).reshape(-1)
+        Index -= 1  # convert to 0-based indexing
     if Class is not None:
         Class = np.array(Class, dtype=np.int64).reshape(-1)
 
@@ -148,13 +149,6 @@ def load_unlabelled(path, fs=25000, psi=None):  # >>>>>>>>>> doing a lot
         d_norm: normalized signal
     """
     d, _, _ = load_mat(path)
-    # d = remove_dc_fft(d, fs=fs)
-    # d = bandpass_filter(d, fs=fs, low=7, high=3000)
-
-    # # Apply matched filter if wavelet provided
-    # if psi is not None:
-    #     d = matched_filter_denoise(d, psi)
-    #     print(f"  Applied matched filter to {path}")
 
     d_norm = global_normalize(d)
     # d_norm = MAD_normalize(d)
@@ -162,84 +156,84 @@ def load_unlabelled(path, fs=25000, psi=None):  # >>>>>>>>>> doing a lot
 # ----------------------------------------------------------------------------------
 
 
-def load_D1_stages(path, fs=25000):
-    """
-    Load D1 and return each preprocessing stage separately.
+# def load_D1_stages(path, fs=25000):
+#     """
+#     Load D1 and return each preprocessing stage separately.
 
-    Returns:
-        dict with keys: 'raw', 'fft_only', 'bandpass', 'wavelet', 'full_pipeline'
-        Index, Class
-    """
-    d_raw, Index, Class = load_mat(path)
+#     Returns:
+#         dict with keys: 'raw', 'fft_only', 'bandpass', 'wavelet', 'full_pipeline'
+#         Index, Class
+#     """
+#     d_raw, Index, Class = load_mat(path)
 
-    stages = {}
+#     stages = {}
 
-    # Stage 1: Raw signal (just loaded)
-    stages['raw'] = d_raw.copy()
+#     # Stage 1: Raw signal (just loaded)
+#     stages['raw'] = d_raw.copy()
 
-    # Stage 2: FFT drift removal only
-    d_fft = remove_dc_fft(d_raw, fs=fs)
-    stages['fft_only'] = d_fft.copy()
+#     # Stage 2: FFT drift removal only
+#     d_fft = remove_dc_fft(d_raw, fs=fs)
+#     stages['fft_only'] = d_fft.copy()
 
-    # Stage 3: FFT + Bandpass
-    d_bandpass = bandpass_filter(d_fft, fs=fs, low=7, high=3000)
-    stages['bandpass'] = d_bandpass.copy()
+#     # Stage 3: FFT + Bandpass
+#     d_bandpass = bandpass_filter(d_fft, fs=fs, low=7, high=3000)
+#     stages['bandpass'] = d_bandpass.copy()
 
-    # Stage 4: FFT + Wavelet (no bandpass)
-    psi, _, _ = build_average_mother(d_fft, Index)
-    if psi is not None:
-        d_wavelet = matched_filter_denoise(d_fft, psi)
-        stages['wavelet'] = d_wavelet.copy()
-    else:
-        stages['wavelet'] = None
+#     # Stage 4: FFT + Wavelet (no bandpass)
+#     psi, _, _ = build_average_mother(d_fft, Index)
+#     if psi is not None:
+#         d_wavelet = matched_filter_denoise(d_fft, psi)
+#         stages['wavelet'] = d_wavelet.copy()
+#     else:
+#         stages['wavelet'] = None
 
-    # Stage 5: Full pipeline (FFT + Bandpass + Wavelet)
-    if psi is not None:
-        d_full = matched_filter_denoise(d_bandpass, psi)
-        stages['full_pipeline'] = d_full.copy()
-    else:
-        stages['full_pipeline'] = None
+#     # Stage 5: Full pipeline (FFT + Bandpass + Wavelet)
+#     if psi is not None:
+#         d_full = matched_filter_denoise(d_bandpass, psi)
+#         stages['full_pipeline'] = d_full.copy()
+#     else:
+#         stages['full_pipeline'] = None
 
-    return stages, Index, Class
+#     return stages, Index, Class
 
 
-def load_unlabelled_stages(path, psi, fs=25000):
-    """
-    Load unlabelled dataset and return each preprocessing stage.
+# def load_unlabelled_stages(path, psi, fs=25000):
+#     """
+#     Load unlabelled dataset and return each preprocessing stage.
 
-    Args:
-        psi: mother wavelet from D1 (required for wavelet stages)
+#     Args:
+#         psi: mother wavelet from D1 (required for wavelet stages)
 
-    Returns:
-        dict with keys: 'raw', 'fft_only', 'bandpass', 'wavelet', 'full_pipeline'
-    """
-    d_raw, _, _ = load_mat(path)
+#     Returns:
+#         dict with keys: 'raw', 'fft_only', 'bandpass', 'wavelet', 'full_pipeline'
+#     """
+#     d_raw, _, _ = load_mat(path)
 
-    stages = {}
+#     stages = {}
 
-    # Stage 1: Raw
-    stages['raw'] = d_raw.copy()
+#     # Stage 1: Raw
+#     stages['raw'] = d_raw.copy()
 
-    # Stage 2: FFT only
-    d_fft = remove_dc_fft(d_raw, fs=fs)
-    stages['fft_only'] = d_fft.copy()
+#     # Stage 2: FFT only
+#     d_fft = remove_dc_fft(d_raw, fs=fs)
+#     stages['fft_only'] = d_fft.copy()
 
-    # Stage 3: FFT + Bandpass
-    d_bandpass = bandpass_filter(d_fft, fs=fs, low=7, high=3000)
-    stages['bandpass'] = d_bandpass.copy()
+#     # Stage 3: FFT + Bandpass
+#     d_bandpass = bandpass_filter(d_fft, fs=fs, low=7, high=3000)
+#     stages['bandpass'] = d_bandpass.copy()
 
-    # Stage 4: FFT + Wavelet (if psi provided)
-    if psi is not None:
-        d_wavelet = matched_filter_denoise(d_fft, psi)
-        stages['wavelet'] = d_wavelet.copy()
-    else:
-        stages['wavelet'] = None
+#     # Stage 4: FFT + Wavelet (if psi provided)
+#     if psi is not None:
+#         d_wavelet = matched_filter_denoise(d_fft, psi)
+#         stages['wavelet'] = d_wavelet.copy()
+#     else:
+#         stages['wavelet'] = None
 
-    # Stage 5: Full pipeline
-    if psi is not None:
-        d_full = matched_filter_denoise(d_bandpass, psi)
-        stages['full_pipeline'] = d_full.copy()
-    else:
-        stages['full_pipeline'] = None
+#     # Stage 5: Full pipeline
+#     if psi is not None:
+#         d_full = matched_filter_denoise(d_bandpass, psi)
+#         stages['full_pipeline'] = d_full.copy()
+#     else:
+#         stages['full_pipeline'] = None
 
-    return stages
+#     return stages

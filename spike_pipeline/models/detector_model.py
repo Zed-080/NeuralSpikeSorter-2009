@@ -1,7 +1,7 @@
 from tensorflow.keras import layers, models, optimizers  # type: ignore
 
 
-def build_detector_model(window=128):
+def build_detector_model(window=120):
     """
     Sequence Labeling Spike Detector (Matches 'src' pipeline).
 

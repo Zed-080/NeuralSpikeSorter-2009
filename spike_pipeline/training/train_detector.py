@@ -12,14 +12,14 @@ def train_detector(X_path="outputs/X_detector.npy",
     y = np.load(y_path)
 
     X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.2, shuffle=True
+        X, y, test_size=0.2, shuffle=True, random_state=42
     )
 
     model = build_detector_model(window=X.shape[1])
 
     es = EarlyStopping(
         monitor="val_loss",
-        patience=5,
+        patience=3,
         restore_best_weights=True
     )
 
