@@ -149,7 +149,7 @@ def denoise_dataset(name: str, wavelet: str = "db4", level: int = 5, save: bool 
 
     # 2. Wavelet Denoising
     d_denoised = wavelet_denoise(
-        d_matched,
+        d_raw,
         fs=FS_DEFAULT,
         highpass_cutoff=cfg.get("hp_cutoff", 5.0),
         wavelet=wavelet,
