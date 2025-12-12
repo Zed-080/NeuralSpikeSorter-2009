@@ -158,10 +158,10 @@ POST = 44
 
 # Thresholds (Tuned or Manual)
 THRESHOLD_PER_DATASET = {
-    "D2": 0.70,
-    "D3": 0.75,
-    "D4": 0.80,
-    "D5": 0.85,
+    "D2": 0.25,
+    "D3": 0.40,
+    "D4": 0.50,
+    "D5": 0.75,
     "D6": 0.90,
 }
 
