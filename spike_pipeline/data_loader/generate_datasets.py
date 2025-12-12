@@ -9,7 +9,6 @@ from spike_pipeline.data_loader.build_detector_data import build_detector_data
 from spike_pipeline.data_loader.build_classifier_data import build_classifier_data
 
 # --- Paths Config ---
-# Robustly find the project root (assuming this script is in spike_pipeline/data_loader/)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_RAW = PROJECT_ROOT / "data"
 OUTPUT_DIR = PROJECT_ROOT / "outputs"

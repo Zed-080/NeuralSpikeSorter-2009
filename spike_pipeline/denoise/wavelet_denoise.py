@@ -1,7 +1,3 @@
-"""
-Wavelet + FFT-based denoising for D2–D6 datasets.
-"""
-
 from pathlib import Path
 from typing import Tuple, Optional
 import numpy as np
