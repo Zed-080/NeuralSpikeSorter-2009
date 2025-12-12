@@ -1,3 +1,22 @@
+# ==============================================================================
+# FULL INFERENCE PIPELINE (D2-D6)
+# ==============================================================================
+# The main orchestration script for processing unlabelled datasets.
+# Generates the final submission .mat files.
+#
+# PIPELINE STAGES:
+# 1. DENOISING: Applies Wavelet Denoising (and optional Matched Filtering)
+#    to clean the raw noisy signal.
+# 2. NORMALIZATION: Standardizes the signal to unit variance (Z-score).
+# 3. DETECTION:
+#    - Runs the Detector CNN (sliding window) to get probability maps.
+#    - Applies thresholding (auto-tuned or manual override).
+#    - Applies refractory suppression to remove duplicate detections.
+# 4. EXTRACTION: Cuts out 64-sample waveforms around valid detections.
+# 5. CLASSIFICATION: Runs the Classifier CNN to assign neuron types (1-5).
+# 6. EXPORT: Saves 'Index' and 'Class' vectors to .mat files (1-based indexing).
+# ==============================================================================
+
 import numpy as np
 import scipy.io as spio
 from pathlib import Path
@@ -14,6 +33,7 @@ PRE = 20
 POST = 44
 
 # Thresholds (Tuned or Manual)
+# Higher noise (D5/D6) typically requires higher thresholds to reduce false positives
 THRESHOLD_PER_DATASET = {
     "D2": 0.25,
     "D3": 0.40,
@@ -22,16 +42,12 @@ THRESHOLD_PER_DATASET = {
     "D6": 0.90,
 }
 
-# THRESHOLD_PER_DATASET = {
-#     "D2": 0.20,
-#     "D3": 0.35,
-#     "D4": 0.45,
-#     "D5": 0.60,
-#     "D6": 0.65,
-# }
-
 
 def sliding_window_probs(d_norm, model, window_len=120, batch_size=2048):
+    """
+    Runs the Detector CNN over the signal in batches to generate a probability curve.
+    Returns: probs (N, window), starts (N,)
+    """
     d_norm = np.asarray(d_norm, dtype=np.float32)
     N = d_norm.shape[0]
     starts = np.arange(0, N - window_len + 1, dtype=np.int64)
@@ -49,6 +65,10 @@ def sliding_window_probs(d_norm, model, window_len=120, batch_size=2048):
 
 
 def apply_refractory(probs, starts, decision_threshold, refractory_suppression, center_offset=None):
+    """
+    Post-processes probabilities to find spike indices.
+    Applies thresholding and refractory period to merge close detections.
+    """
     if center_offset is None:
         center_offset = probs.shape[1] // 2
 
@@ -63,6 +83,7 @@ def apply_refractory(probs, starts, decision_threshold, refractory_suppression, 
 
     for w_idx in cand_windows:
         idx = int(starts[w_idx] + center_offset)
+        # Refractory check: ignore if too close to previous spike
         if idx - last_det >= refractory_suppression:
             det_indices.append(idx)
             last_det = idx
@@ -76,7 +97,10 @@ def run_inference_dataset(detector_model,
                           save_path,
                           refractory=45,
                           default_threshold=0.75):
-
+    """
+    Executes the full pipeline on a single .mat dataset file.
+    Loads -> Denoises -> Detects -> Classifies -> Saves.
+    """
     path = Path(path)
     dataset_name = path.stem
     real_name = dataset_name.split("_")[0]

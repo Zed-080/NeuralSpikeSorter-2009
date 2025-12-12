@@ -1,29 +1,46 @@
+# ==============================================================================
+# SPIKE DETECTOR ARCHITECTURE (CNN)
+# ==============================================================================
+# Defines the neural network used for identifying spike locations in the signal.
+#
+# 1. ARCHITECTURE TYPE: Sequence Labeling
+#    - Unlike a standard classifier that outputs one label per window, this model
+#      outputs a probability *curve* matching the input length.
+#    - Input:  (Batch, 120, 1) -> Raw signal window
+#    - Output: (Batch, 120, 1) -> Probability of a spike at each time step
+#
+# 2. KEY DESIGN CHOICES
+#    - Padding="same": Essential to keep the time axis length constant (120 -> 120).
+#    - No Pooling: We do not use MaxPool or GlobalPool because we need to preserve
+#      temporal resolution to pinpoint exactly *when* the spike occurs.
+#    - 1x1 Convolution: The final layer acts like a Dense layer applied to every
+#      time step independently, producing a point-wise classification.
+# ==============================================================================
+
 from tensorflow.keras import layers, models, optimizers  # type: ignore
 
 
 def build_detector_model(window=120):
     """
-    Sequence Labeling Spike Detector (Matches 'src' pipeline).
-
-    Input:  (Batch, window, 1)
-    Output: (Batch, window, 1) -> A probability curve over time.
+    Constructs the Sequence Labeling Spike Detector model.
+    Returns a compiled Keras model ready for training.
     """
     inputs = layers.Input(shape=(window, 1))
 
-    # 1. Feature Extraction (Keep time dimension -> padding="same", strides=1)
-    #    Note: 'src' uses 16 -> 32 -> 64 filters
+    # 1. Feature Extraction Layers
+    # We use 3 Conv1D layers to learn increasingly complex temporal features.
+    # 'same' padding ensures the output length matches the input length.
     x = layers.Conv1D(16, kernel_size=5, padding="same",
                       activation="relu")(inputs)
     x = layers.Conv1D(32, kernel_size=5, padding="same", activation="relu")(x)
     x = layers.Conv1D(64, kernel_size=3, padding="same", activation="relu")(x)
 
-    # REMOVED: Strided convolutions (they shrink the time axis)
-    # REMOVED: GlobalAveragePooling1D (it destroys the time axis)
-    # REMOVED: Dense layers (they destroy the time axis)
+    # Note: We deliberately avoid Strides or Pooling here to prevent
+    # losing temporal precision.
 
     # 2. Per-Timestep Classification
-    #    We use a 1x1 convolution to map the 64 features at each time step
-    #    to a single probability (sigmoid).
+    # A 1x1 Convolution maps the 64 features at each time step down to
+    # a single scalar probability (0-1).
     outputs = layers.Conv1D(
         filters=1,
         kernel_size=1,

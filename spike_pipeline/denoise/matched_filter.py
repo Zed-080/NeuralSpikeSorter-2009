@@ -1,8 +1,24 @@
-import numpy as np
-from pathlib import Path
-from typing import Tuple
+# ==============================================================================
+# MATCHED FILTERING UTILITIES
+# ==============================================================================
+# Implements "Template Matching" to enhance spike visibility in noisy data.
+#
+# 1. THEORY
+#    - A "Matched Filter" is the optimal linear filter for maximizing the Signal-to-Noise
+#      Ratio (SNR) in the presence of additive stochastic noise.
+#    - It works by cross-correlating the noisy signal with a known "template" of
+#      the signal we are looking for (the spike).
+#
+# 2. STRATEGY
+#    - We derive a "Mother Template" by averaging thousands of clean, labeled
+#      spikes from the high-SNR D1 dataset.
+#    - This template represents the "ideal" spike shape for this specific electrode.
+#    - We then convolve this template with the noisy datasets (D2-D6). This amplifies
+#      shapes that look like spikes and suppresses random noise.
+# ==============================================================================
 
-from spike_pipeline.data_loader.load_datasets import load_D1
+import numpy as np
+from typing import Tuple
 
 
 def build_average_spike_template(
@@ -12,27 +28,18 @@ def build_average_spike_template(
     capture_weight: float = 0.8
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Build an average spike template (mother wavelet) from D1.
+    Constructs the 'Mother Template' by averaging clean spikes from D1.
 
-    Parameters
-    ----------
-    d1_signal : array
-        Clean D1 signal (normalized)
-    d1_idx : array
-        Spike indices from D1 (0-based)
-    capture_width : int
-        Total window size around each spike
-    capture_weight : float
-        Fraction of window after spike peak (0.8 = 16 before, 64 after)
+    Args:
+        d1_signal: Normalized, clean D1 recording.
+        d1_idx: Ground truth indices of spikes.
+        capture_width: Window size to extract around each spike (e.g., 80).
+        capture_weight: Positioning weight (0.8 means 80% of window is post-peak).
 
-    Returns
-    -------
-    psi : array
-        Normalized template for matched filtering (unit energy)
-    avg : array
-        Raw average spike waveform
-    windows : array
-        All individual spike windows stacked (for inspection)
+    Returns:
+        psi (np.array): Normalized, zero-mean template (unit energy).
+        avg (np.array): Raw average waveform (useful for visualization).
+        windows (np.array): Stack of all extracted windows.
     """
     captures_list = []
     neg_off = int(capture_width * (1 - capture_weight))
@@ -53,12 +60,13 @@ def build_average_spike_template(
     if len(captures_list) == 0:
         raise ValueError("No valid spike windows extracted!")
 
-    windows = np.vstack(captures_list)  # (num_spikes, capture_width)
+    windows = np.vstack(captures_list)
     avg = np.mean(windows, axis=0)
 
     # Normalize: remove DC offset and scale to unit energy
     psi = avg - np.mean(avg)
     energy = np.sqrt(np.sum(psi ** 2))
+
     if energy > 1e-10:
         psi = psi / energy
 
@@ -67,27 +75,22 @@ def build_average_spike_template(
 
 def matched_filter_enhance(signal: np.ndarray, psi: np.ndarray) -> np.ndarray:
     """
-    Apply matched filter to enhance spike-like patterns in noisy signal.
+    Convolves the signal with the spike template to maximize SNR.
 
-    Parameters
-    ----------
-    signal : array
-        Input signal (can be raw or lightly preprocessed)
-    psi : array
-        Spike template from build_average_spike_template
+    Args:
+        signal: The raw or noisy input signal (1D array).
+        psi: The normalized spike template from build_average_spike_template.
 
-    Returns
-    -------
-    filtered : array
-        Matched-filtered signal (same length as input)
+    Returns:
+        filtered: The enhanced signal where peaks correspond to likely spike locations.
     """
     signal = np.asarray(signal, dtype=np.float32)
     psi = np.asarray(psi, dtype=np.float32)
 
-    # Reverse template for convolution (matched filter = correlation)
+    # Reverse template for convolution (Convolution with reversed kernel = Cross-Correlation)
     psi_rev = psi[::-1]
 
-    # Convolve and maintain same length
+    # 'same' mode ensures the output length matches the input length
     filtered = np.convolve(signal, psi_rev, mode='same')
 
     return filtered.astype(np.float32)

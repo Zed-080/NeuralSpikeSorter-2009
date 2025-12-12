@@ -1,3 +1,26 @@
+# ==============================================================================
+# DETECTOR HYPERPARAMETER TUNING
+# ==============================================================================
+# Performs a Grid Search to find the optimal post-processing parameters for the
+# spike detector.
+#
+# 1. METHODOLOGY
+#    - Runs inference on the CLEAN D1 dataset (Ground Truth).
+#    - We optimize two parameters that control the "peak finding" logic:
+#      a. Decision Threshold: Probability cutoff (0.0 - 1.0).
+#      b. Refractory Period: Minimum samples allowed between two spikes.
+#
+# 2. OPTIMIZATION METRIC
+#    - We maximize the F1-Score (Harmonic mean of Precision and Recall).
+#    - This balances "finding all spikes" (Recall) vs "avoiding false alarms" (Precision).
+#
+# 3. EFFICIENCY
+#    - "In-Memory" inference: We run the heavy CNN prediction ONCE to get a
+#      probability curve.
+#    - "Fast" grid search: We apply thresholds/refractory logic to the pre-calculated
+#      probabilities, allowing us to test hundreds of combinations in seconds.
+# ==============================================================================
+
 import numpy as np
 import os
 from pathlib import Path
@@ -6,9 +29,9 @@ from spike_pipeline.data_loader.load_datasets import load_D1
 from spike_pipeline.inference.matching import match_predictions
 
 # --- Config (Robust Paths) ---
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  # Go up 2 levels to root
-DATA_RAW = PROJECT_ROOT / "data"                    # Points to /data
-OUTPUT_DIR = PROJECT_ROOT / "outputs"               # Points to /outputs
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_RAW = PROJECT_ROOT / "data"
+OUTPUT_DIR = PROJECT_ROOT / "outputs"
 CONFIG_PATH = OUTPUT_DIR / "detector_config.npz"
 
 WINDOW_LEN = 120
@@ -16,6 +39,10 @@ DET_LABEL_TOL = 5
 
 
 def sliding_window_probs_in_memory(model, d_norm, window_len=120, batch_size=2048):
+    """
+    Runs the CNN over the entire signal to generate a probability curve.
+    Returns: probs (N, window_len), starts (N,)
+    """
     d_norm = np.asarray(d_norm, dtype=np.float32)
     N = d_norm.shape[0]
     starts = np.arange(0, N - window_len + 1, dtype=np.int64)
@@ -23,8 +50,11 @@ def sliding_window_probs_in_memory(model, d_norm, window_len=120, batch_size=204
 
     for i in range(0, len(starts), batch_size):
         batch_indices = starts[i:i + batch_size]
+        # Extract batch of windows
         batch_windows = np.stack([d_norm[s:s + window_len]
                                  for s in batch_indices])
+
+        # Predict
         p = model.predict(batch_windows[..., np.newaxis], verbose=0)
         probs[i:i + len(batch_indices), :] = np.squeeze(p, axis=-1)
 
@@ -32,13 +62,21 @@ def sliding_window_probs_in_memory(model, d_norm, window_len=120, batch_size=204
 
 
 def apply_refractory_fast(probs, starts, threshold, refractory, center_offset):
+    """
+    Applies thresholding and refractory suppression to pre-calculated probabilities.
+    Returns: Array of detected spike indices (integers).
+    """
+    # 1. Thresholding
     center_probs = probs[:, center_offset]
     cand_window_indices = np.where(center_probs >= threshold)[0]
 
     if len(cand_window_indices) == 0:
         return np.array([], dtype=np.int64)
 
+    # 2. Convert window index to absolute time sample
     absolute_times = starts[cand_window_indices] + center_offset
+
+    # 3. Refractory Suppression (Greedy approach)
     kept_spikes = []
     last_spike = -np.inf
 
@@ -53,7 +91,10 @@ def apply_refractory_fast(probs, starts, threshold, refractory, center_offset):
 def tune_detector_threshold(detector_model,
                             threshold_range=np.linspace(0.70, 0.95, 6),
                             refractory_range=[25, 35, 45, 55, 60]):
-
+    """
+    Main tuning loop. Loads D1, calculates probs, runs grid search, and saves best config.
+    Returns: best_threshold, best_refractory
+    """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # 1. Load ONLY Clean D1 for tuning
@@ -65,7 +106,7 @@ def tune_detector_threshold(detector_model,
 
     d_clean, Index_gt, _ = load_D1(d1_path)
 
-    # 2. Pre-calculate probabilities ONCE
+    # 2. Pre-calculate probabilities ONCE (The heavy lifting)
     print("Pre-calculating CNN probabilities on Clean D1...")
     probs_clean, starts_clean = sliding_window_probs_in_memory(
         detector_model, d_clean, WINDOW_LEN)
@@ -78,7 +119,7 @@ def tune_detector_threshold(detector_model,
     best_refr = 45
     center_off = WINDOW_LEN // 2
 
-    # 3. Grid Search based on Clean D1 performance only
+    # 3. Grid Search
     for thr in threshold_range:
         for refr in refractory_range:
             preds = apply_refractory_fast(
@@ -86,8 +127,6 @@ def tune_detector_threshold(detector_model,
 
             stats = match_predictions(preds, Index_gt)
             f1 = stats["f1"]
-
-            # print(f"Thr={thr:.2f}, Refr={refr} -> F1={f1:.4f}")
 
             if f1 > best_f1:
                 best_f1 = f1
@@ -99,7 +138,7 @@ def tune_detector_threshold(detector_model,
     print(f"Refractory: {best_refr}")
     print(f"F1 Score: {best_f1:.3f}")
 
-    # 4. Save Config
+    # 4. Save Config to disk for inference scripts to use
     np.savez(CONFIG_PATH,
              decision_threshold=best_thr,
              refractory_suppression=best_refr,

@@ -1,3 +1,19 @@
+# ==============================================================================
+# INFERENCE & SUBMISSION GENERATOR
+# ==============================================================================
+# Runs the pre-trained models on the unlabelled datasets (D2-D6) and packages
+# the results into a ZIP file for Moodle submission.
+#
+# 1. LOAD MODELS: Loads the saved Keras models for detection and classification.
+# 2. LOAD CONFIG: Loads the optimal threshold/refractory params found during tuning.
+# 3. RUN INFERENCE:
+#    - Denoises the raw signals (D2-D6).
+#    - Detects spikes using the Detector CNN + tuned parameters.
+#    - Classifies spikes using the Classifier CNN.
+#    - Saves 'Index' and 'Class' vectors to .mat files.
+# 4. PACKAGE: Zips the resulting .mat files into 'NeuralSpikeSorter_Submission.zip'.
+# ==============================================================================
+
 import os
 import shutil
 import zipfile
@@ -34,6 +50,7 @@ def load_tuning_params():
 
 
 def prepare_submission_zip():
+    """Packages the generated .mat files into a single ZIP archive."""
     print("-" * 50)
     print("STARTING SUBMISSION PREPARATION")
     os.makedirs(SUBMISSION_DIR, exist_ok=True)
@@ -55,7 +72,15 @@ def prepare_submission_zip():
 
 
 def main_infer():
+    """
+    Main inference routine. Loads models, processes D2-D6, and zips results.
+    """
     # 1. Load Models
+    if not os.path.exists(DETECTOR_MODEL_PATH) or not os.path.exists(CLASSIFIER_MODEL_PATH):
+        print(
+            f"[ERROR] Models not found in {OUTPUT_DIR}. Please run main_runner.py first.")
+        return
+
     det_model = tf.keras.models.load_model(DETECTOR_MODEL_PATH)
     clf_model = tf.keras.models.load_model(CLASSIFIER_MODEL_PATH)
 
